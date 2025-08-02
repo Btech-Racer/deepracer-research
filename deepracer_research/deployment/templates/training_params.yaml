@@ -1,0 +1,80 @@
+name: "training_params_template"
+description: "AWS DeepRacer training parameters template"
+version: "1.0"
+
+parameters:
+  aws:
+    region: "us-east-1"
+    account_id: "{{aws.account_id}}"
+    kms_key_arn: "{{aws.kms_key_arn}}"
+
+  job:
+    type: "TRAINING"
+    arn: "{{job.training_job_arn}}"
+    name: "{{model.name}}"
+
+  world:
+    name: "{{world.name}}"
+    track_direction_clockwise: "{{world.track_direction_clockwise}}"
+
+  training:
+    change_start_position: "{{training.change_start_position}}"
+    alternate_driving_direction: "{{training.alternate_driving_direction}}"
+    enable_episode_simtrace: "{{training.enable_episode_simtrace}}"
+
+  s3:
+    shared_bucket: "{{s3.shared_bucket}}"
+    shared_prefix: "{{s3.shared_prefix}}"
+    metrics_bucket: "{{s3.metrics_bucket}}"
+
+  files:
+    reward_function_key: "{{s3.shared_prefix}}/reward_function.py"
+    model_metadata_key: "{{s3.shared_prefix}}/model_metadata.json"
+    metrics_object_key: "{{s3.shared_prefix}}/metrics/training/training-{{timestamp}}-{{job.id}}.json"
+
+  media:
+    mp4_bucket: "{{s3.shared_bucket}}"
+    mp4_prefix: "{{s3.shared_prefix}}/videos/training/training-{{timestamp}}-{{job.id}}/"
+    simtrace_bucket: "{{s3.shared_bucket}}"
+    simtrace_prefix: "{{s3.shared_prefix}}/sim-trace/training/"
+    kinesis_stream: "dr-kvs-{{aws.account_id}}-{{timestamp}}-{{job.id}}"
+
+  metrics:
+    name: "TrainingRewardScore"
+    namespace: "AWSDeepRacer"
+
+  racer:
+    name: "{{racer.name}}"
+    body_shell_type: "{{racer.body_shell_type}}"
+    race_type: "{{racer.race_type}}"
+
+template: |
+  ---
+  AWS_REGION: "{{parameters.aws.region}}"
+  ROBOMAKER_SIMULATION_JOB_ACCOUNT_ID: "{{parameters.aws.account_id}}"
+  JOB_TYPE: "{{parameters.job.type}}"
+  WORLD_NAME: "{{parameters.world.name}}"
+  TRACK_DIRECTION_CLOCKWISE: "{{parameters.world.track_direction_clockwise}}"
+  CHANGE_START_POSITION: {{parameters.training.change_start_position}}
+  ALTERNATE_DRIVING_DIRECTION: {{parameters.training.alternate_driving_direction}}
+  TRAINING_JOB_ARN: "{{parameters.job.arn}}"
+  METRIC_NAME: "{{parameters.metrics.name}}"
+  METRIC_NAMESPACE: "{{parameters.metrics.namespace}}"
+  SAGEMAKER_SHARED_S3_BUCKET: "{{parameters.s3.shared_bucket}}"
+  SAGEMAKER_SHARED_S3_PREFIX: "{{parameters.s3.shared_prefix}}"
+  REWARD_FILE_S3_KEY: "{{parameters.files.reward_function_key}}"
+  MODEL_METADATA_FILE_S3_KEY: "{{parameters.files.model_metadata_key}}"
+  METRICS_S3_BUCKET: "{{parameters.s3.metrics_bucket}}"
+  METRICS_S3_OBJECT_KEY: "{{parameters.files.metrics_object_key}}"
+  ENABLE_EPISODE_SIMTRACE: {{parameters.training.enable_episode_simtrace}}
+  MP4_S3_BUCKET: "{{parameters.media.mp4_bucket}}"
+  MP4_S3_OBJECT_PREFIX: "{{parameters.media.mp4_prefix}}"
+  SIMTRACE_S3_BUCKET: "{{parameters.media.simtrace_bucket}}"
+  SIMTRACE_S3_PREFIX: "{{parameters.media.simtrace_prefix}}"
+  S3_KMS_CMK_ARN: "{{parameters.aws.kms_key_arn}}"
+  KINESIS_VIDEO_STREAM_NAME: "{{parameters.media.kinesis_stream}}"
+  VIDEO_JOB_TYPE: "{{parameters.job.type}}"
+  MODEL_NAME: "{{parameters.job.name}}"
+  RACER_NAME: "{{parameters.racer.name}}"
+  BODY_SHELL_TYPE: "{{parameters.racer.body_shell_type}}"
+  RACE_TYPE: "{{parameters.racer.race_type}}"

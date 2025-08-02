@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "deepracer-research"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "research"
+  },
+  {
+    "ParameterKey": "S3BucketSuffix",
+    "ParameterValue": "thesis-data"
+  }
+]

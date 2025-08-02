@@ -1,0 +1,11 @@
+{
+  "model_id": "bbfb858a",
+  "run_id": "bbfb858a-1754067189",
+  "workers": 4,
+  "worker_mode": "swarm",
+  "race_type": "TIME_TRIAL",
+  "s3_bucket": "deepracer-thunder-compute-bbfb858a-20250801-175309-12641f45",
+  "deployment_type": "thunder_compute_files",
+  "created_at": "2025-06-24 17:53:10",
+  "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/bbfb858a"
+}

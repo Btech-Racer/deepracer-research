@@ -1,0 +1,17 @@
+{
+  "model_id": "4ac29741",
+  "run_id": "4ac29741-1754087537",
+  "workers": 4,
+  "worker_mode": "swarm",
+  "race_type": "OBJECT_AVOIDANCE",
+  "s3_bucket": "deepracer-thunder-compute-4ac29741-20250801-233217-9bc2d0a7",
+  "deployment_type": "thunder_compute_files",
+  "created_at": "2025-04-01 23:32:20",
+  "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/4ac29741",
+  "object_avoidance": {
+    "num_obstacles": 6,
+    "randomize_obstacles": false,
+    "obstacle_distance": 2.0,
+    "bot_car_obstacles": false
+  }
+}

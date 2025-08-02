@@ -1,0 +1,11 @@
+{
+  "model_id": "642aade7",
+  "run_id": "642aade7-1754088412",
+  "workers": 4,
+  "worker_mode": "swarm",
+  "race_type": "TIME_TRIAL",
+  "s3_bucket": "deepracer-thunder-compute-642aade7-20250801-234652-d3ad85c4",
+  "deployment_type": "thunder_compute_files",
+  "created_at": "2025-07-22 23:46:54",
+  "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/642aade7"
+}

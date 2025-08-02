@@ -1,0 +1,457 @@
+version: '3'
+
+vars:
+  PACKAGE_NAME: deepracer_research
+  PYTHON_VERSION: "3.12"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install the package and dependencies
+    cmds:
+      - poetry install
+
+  install-dev:
+    desc: Install in development mode with all dependencies
+    cmds:
+      - poetry install --with dev,research,aws
+
+  test:
+    desc: Run tests
+    cmds:
+      - poetry run pytest tests/ -v
+
+  test-coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - poetry run pytest tests/ --cov={{.PACKAGE_NAME}} --cov-report=html
+      - echo "Coverage report generated in htmlcov/"
+
+  test-watch:
+    desc: Run tests in watch mode
+    cmds:
+      - poetry run pytest-watch tests/
+
+  lint:
+    desc: Lint code with flake8 and mypy
+    cmds:
+      - poetry run flake8 {{.PACKAGE_NAME}} tests
+      - poetry run mypy {{.PACKAGE_NAME}}
+
+  format:
+    desc: Format code with black and isort
+    cmds:
+      - poetry run black {{.PACKAGE_NAME}} tests
+      - poetry run isort {{.PACKAGE_NAME}} tests
+
+  format-check:
+    desc: Check code formatting without making changes
+    cmds:
+      - poetry run black --check {{.PACKAGE_NAME}} tests
+      - poetry run isort --check-only {{.PACKAGE_NAME}} tests
+
+  security:
+    desc: Run security checks with bandit
+    cmds:
+      - poetry run bandit -r {{.PACKAGE_NAME}}
+
+  quality:
+    desc: Run all quality checks (lint, format-check, security)
+    deps:
+      - lint
+      - format-check
+      - security
+
+  clean:
+    desc: Clean build artifacts and cache files
+    cmds:
+      - rm -rf build/
+      - rm -rf dist/
+      - rm -rf *.egg-info/
+      - rm -rf .pytest_cache/
+      - rm -rf htmlcov/
+      - rm -rf .coverage
+      - rm -rf .mypy_cache/
+      - find . -type d -name __pycache__ -delete
+      - find . -type f -name "*.pyc" -delete
+      - find . -type f -name "*.pyo" -delete
+
+  build:
+    desc: Build package distribution
+    deps:
+      - clean
+    cmds:
+      - poetry build
+
+  install-local:
+    desc: Install package locally in editable mode
+    cmds:
+      - pip install -e .
+
+  publish:
+    desc: Publish package to PyPI
+    deps:
+      - build
+      - test
+    cmds:
+      - poetry publish
+
+  publish-test:
+    desc: Publish package to Test PyPI
+    deps:
+      - build
+      - test
+    cmds:
+      - poetry publish --repository testpypi
+
+  example:
+    desc: Run example notebook in Jupyter
+    cmds:
+      - poetry run jupyter notebook notebooks/01_quick_start_guide.ipynb
+
+  lab:
+    desc: Start JupyterLab
+    cmds:
+      - poetry run jupyter lab
+
+  notebook:
+    desc: Start Jupyter Notebook
+    cmds:
+      - poetry run jupyter notebook
+
+  list-configs:
+    desc: List available model configurations
+    cmds:
+      - deepracer-research list-configs
+
+  cli-info:
+    desc: Show system and library information via CLI
+    cmds:
+      - deepracer-research info
+
+  cli-validate:
+    desc: Validate all model configurations via CLI
+    cmds:
+      - deepracer-research validate-config
+
+  cli-benchmark:
+    desc: Benchmark model creation performance via CLI
+    cmds:
+      - deepracer-research benchmark --config high_speed_racing --iterations 3
+
+  cli-help:
+    desc: Show CLI help
+    cmds:
+      - deepracer-research --help
+
+  sample-model:
+    desc: Create a sample model to test the library
+    cmds:
+      - deepracer-research create-model --config high_speed_racing --output models/sample_model.h5
+
+  check-env:
+    desc: Check Python environment and dependencies
+    cmds:
+      - python --version
+      - poetry --version
+      - poetry show
+
+  gpu-info:
+    desc: Check GPU availability for TensorFlow
+    cmds:
+      - poetry run python -c "import tensorflow as tf; print('GPU Available:', tf.config.list_physical_devices('GPU')); print('TensorFlow version:', tf.__version__)"
+
+  docs:
+    desc: Generate documentation
+    cmds:
+      - poetry run sphinx-build -b html docs/ docs/_build/
+
+  docs-serve:
+    desc: Serve documentation locally
+    deps:
+      - docs
+    cmds:
+      - poetry run python -m http.server 8000 --directory docs/_build/
+
+  init-project:
+    desc: Initialize project for first-time setup
+    cmds:
+      - task: install-dev
+      - task: format
+      - task: test
+      - echo "Project initialized successfully!"
+
+  ci:
+    desc: Run continuous integration pipeline
+    cmds:
+      - task: quality
+      - task: test-coverage
+      - task: build
+
+  dev:
+    desc: Setup development environment
+    cmds:
+      - task: install-dev
+      - poetry run pre-commit install
+      - echo "Development environment ready!"
+
+  benchmark:
+    desc: Run performance benchmarks
+    cmds:
+      - |
+        poetry run python -c "
+        from deepracer_research import ArchitectureFactory
+        import time
+        factory = ArchitectureFactory()
+        start = time.time()
+        model = factory.create_model('high_speed_racing')
+        end = time.time()
+        print('Model creation time: {:.2f}s'.format(end-start))
+        print('Model parameters: {:,}'.format(model.count_params()))
+        "
+
+  reward-scenarios:
+    desc: List available reward function scenarios
+    cmds:
+      - poetry run deepracer-research list-reward-scenarios
+
+  create-reward:
+    desc: Create a reward function (specify SCENARIO and OUTPUT)
+    cmds:
+      - poetry run deepracer-research create-reward-function --scenario {{.SCENARIO | default "centerline_following"}} --output {{.OUTPUT | default "reward_function.py"}}
+
+  test-reward:
+    desc: Test a reward function (specify SCENARIO)
+    cmds:
+      - poetry run deepracer-research test-reward-function --scenario {{.SCENARIO | default "centerline_following"}}
+
+  model-register:
+    desc: "Register a model in the management system (specify MODEL_PATH, NAME, ALGORITHM, ARCHITECTURE, SCENARIO)"
+    cmds:
+      - poetry run deepracer-research register-model {{.MODEL_PATH}} --name {{.NAME}} --algorithm {{.ALGORITHM | default "PPO"}} --architecture {{.ARCHITECTURE | default "CNN_3_layers"}} --scenario {{.SCENARIO | default "default"}}
+
+  model-list:
+    desc: "List registered models with optional filtering"
+    cmds:
+      - poetry run deepracer-research list-models {{.CLI_ARGS}}
+
+  model-info:
+    desc: "Display detailed information about a specific model (specify MODEL_ID)"
+    cmds:
+      - poetry run deepracer-research model-info {{.MODEL_ID}}
+
+  model-export:
+    desc: "Export a model to a portable format (specify MODEL_ID, optional OUTPUT, FORMAT)"
+    cmds:
+      - poetry run deepracer-research export-model {{.MODEL_ID}} {{if .OUTPUT}}--output {{.OUTPUT}}{{end}} {{if .FORMAT}}--format {{.FORMAT}}{{end}}
+
+  model-import:
+    desc: "Import a model from an external source (specify IMPORT_PATH, optional NAME)"
+    cmds:
+      - poetry run deepracer-research import-model {{.IMPORT_PATH}} {{if .NAME}}--name {{.NAME}}{{end}}
+
+  model-stats:
+    desc: "Display comprehensive model registry statistics"
+    cmds:
+      - poetry run deepracer-research model-stats
+
+  deploy-files:
+    desc: "Generate deployment files for a model (specify MODEL_NAME, REWARD_FUNCTION, SENSORS)"
+    cmds:
+      - poetry run deepracer-research deploy deepracer {{.MODEL_NAME | default "test_model"}} --reward-function {{.REWARD_FUNCTION | default "rewards/centerline_following/reward_function.py"}} --sensors {{.SENSORS | default "FRONT_FACING_CAMERA"}} --files-only
+
+  deploy-aws:
+    desc: "Deploy to AWS DeepRacer console (specify MODEL_NAME, REWARD_FUNCTION, SENSORS)"
+    cmds:
+      - poetry run deepracer-research deploy deepracer {{.MODEL_NAME | default "aws_model"}} --reward-function {{.REWARD_FUNCTION | default "rewards/speed_optimization/reward_function.py"}} --sensors {{.SENSORS | default "FRONT_FACING_CAMERA"}} --algorithm clipped_ppo
+
+  deploy-ec2:
+    desc: "Deploy to AWS EC2 (specify MODEL_NAME, SENSORS, TRACK)"
+    cmds:
+      - poetry run deepracer-research deploy aws {{.MODEL_NAME | default "ec2_model"}} --sensors {{.SENSORS | default "FRONT_FACING_CAMERA"}} --track {{.TRACK | default "reInvent2019_track"}} --algorithm clipped_ppo
+
+  deploy-thunder:
+    desc: "Deploy to Thunder Compute (specify MODEL_NAME, REWARD_FUNCTION, SENSORS)"
+    cmds:
+      - poetry run thunder-compute deploy-training {{.MODEL_NAME | default "thunder_model"}} --reward-function {{.REWARD_FUNCTION | default "rewards/time_trial/reward_function.py"}} --sensors {{.SENSORS | default "SECTOR_LIDAR"}} --race-type TIME_TRIAL
+
+  deploy-brev:
+    desc: "Deploy to NVIDIA Brev (specify MODEL_NAME, SENSORS)"
+    cmds:
+      - poetry run nvidia-brev deploy {{.MODEL_NAME | default "brev_model"}} --sensors {{.SENSORS | default "FRONT_FACING_CAMERA"}} --gpu-type a100
+
+  list-tracks:
+    desc: "List available tracks for deployment"
+    cmds:
+      - poetry run deepracer-research deploy list-tracks
+
+  list-algorithms:
+    desc: "List available training algorithms"
+    cmds:
+      - poetry run deepracer-research deploy list-algorithms
+
+  reward-centerline:
+    desc: "Create centerline following reward function"
+    cmds:
+      - poetry run deepracer-research rewards create-from-racing-scenario centerline_following --output {{.OUTPUT | default "rewards/centerline_following/reward_function.py"}}
+
+  reward-speed:
+    desc: "Create speed optimization reward function"
+    cmds:
+      - poetry run deepracer-research rewards create-from-racing-scenario speed_optimization --output {{.OUTPUT | default "rewards/speed_optimization/reward_function.py"}}
+
+  reward-head-to-head:
+    desc: "Create head-to-head racing reward function"
+    cmds:
+      - poetry run deepracer-research rewards create-from-racing-scenario head_to_head --output {{.OUTPUT | default "rewards/head_to_head/reward_function.py"}}
+
+  reward-object-avoidance:
+    desc: "Create object avoidance reward function"
+    cmds:
+      - poetry run deepracer-research rewards create-from-racing-scenario object_avoidance --output {{.OUTPUT | default "rewards/object_avoidance/reward_function.py"}}
+
+  reward-time-trial:
+    desc: "Create time trial reward function"
+    cmds:
+      - poetry run deepracer-research rewards create-from-racing-scenario time_trial --output {{.OUTPUT | default "rewards/time_trial/reward_function.py"}}
+
+  reward-custom:
+    desc: "Create custom reward function from template (specify TEMPLATE, OUTPUT)"
+    cmds:
+      - poetry run deepracer-research rewards create-from-template {{.TEMPLATE | default "centerline_following"}} --output {{.OUTPUT | default "reward_function.py"}}
+
+  validate-sensors:
+    desc: "Validate sensor combinations (specify SENSORS)"
+    cmds:
+      - |
+        poetry run python -c "
+        from deepracer_research.config.aws.types.sensor_type import SensorType
+        try:
+            sensors = SensorType.parse_sensor_list('{{.SENSORS | default "FRONT_FACING_CAMERA"}}')
+            print('Valid sensor combination: {{.SENSORS | default "FRONT_FACING_CAMERA"}}')
+            for sensor in sensors:
+                print(f'  - {sensor.value}: {sensor.get_description()}')
+        except ValueError as e:
+            print(f'Invalid sensor combination: {e}')
+        "
+
+  sensor-info:
+    desc: "Display information about sensor types"
+    cmds:
+      - |
+        poetry run python -c "
+        from deepracer_research.config.aws.types.sensor_type import SensorType
+        print('Available Sensor Types:')
+        print('=' * 50)
+        for sensor in SensorType:
+            print(f'{sensor.value}:')
+            print(f'  Description: {sensor.get_description()}')
+            print(f'  Training Time Multiplier: {sensor.get_training_time_multiplier()}x')
+            print(f'  Competition Recommended: {sensor.is_recommended_for_competitions()}')
+            print()
+        "
+
+  quick-test:
+    desc: "Quick test workflow: create reward function and generate files"
+    cmds:
+      - task: reward-centerline
+      - task: deploy-files MODEL_NAME=quick_test REWARD_FUNCTION=rewards/centerline_following/reward_function.py SENSORS=FRONT_FACING_CAMERA
+      - echo "Quick test completed! Check models/quick_test/ for generated files"
+
+  competitive-setup:
+    desc: "Setup for competitive racing with head-to-head configuration"
+    cmds:
+      - task: reward-head-to-head
+      - task: deploy-files MODEL_NAME=competitive REWARD_FUNCTION=rewards/head_to_head/reward_function.py SENSORS=SECTOR_LIDAR,FRONT_FACING_CAMERA
+      - echo "Competitive setup ready! Check models/competitive/ for configuration"
+
+  shell:
+    desc: Start interactive Python shell with library loaded
+    cmds:
+      - |
+        poetry run python -c "
+        from deepracer_research import *
+        import tensorflow as tf
+        import numpy as np
+        import pandas as pd
+        print('DeepRacer Research Library loaded!')
+        print('Available: ArchitectureFactory, NetworkConfig, ModelOptimizer, RewardFunctionFactory, etc.')
+        " -i
+
+  requirements:
+    desc: Export requirements.txt file
+    cmds:
+      - poetry export -f requirements.txt --output requirements.txt --without-hashes
+      - poetry export -f requirements.txt --output requirements-dev.txt --with dev,research,aws --without-hashes
+
+  update:
+    desc: Update dependencies
+    cmds:
+      - poetry update
+      - poetry show --outdated
+
+  install-task:
+    desc: Install Task runner (if not already installed)
+    cmds:
+      - |
+        if ! command -v task &> /dev/null; then
+          echo "Installing Task runner..."
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+        else
+          echo "Task is already installed"
+        fi
+
+  help:
+    desc: Show detailed help information
+    cmds:
+      - echo "DeepRacer Research Library - Task Runner"
+      - echo "======================================"
+      - echo ""
+      - echo "Common workflows:"
+      - echo "  task init-project
+      - echo "  task dev
+      - echo ""
+      - echo "Development:"
+      - echo "  task test
+      - echo "  task format
+      - echo "  task lint
+      - echo ""
+      - echo "Reward Functions:"
+      - echo "  task reward-scenarios
+      - echo "  task create-reward SCENARIO=centerline
+      - echo "  task test-reward SCENARIO=centerline
+      - echo ""
+      - echo "Model Management:"
+      - echo "  task model-register MODEL_PATH=./model NAME=my_model
+      - echo "  task model-list
+      - echo "  task model-info MODEL_ID=model_123
+      - echo "  task model-export MODEL_ID=model_123
+      - echo "  task model-import IMPORT_PATH=./model.tar.gz
+      - echo "  task model-stats
+      - echo ""
+      - echo "Deployment:"
+      - echo "  task deploy-files MODEL_NAME=my_model SENSORS=FRONT_FACING_CAMERA
+      - echo "  task deploy-aws MODEL_NAME=my_model
+      - echo "  task deploy-thunder MODEL_NAME=my_model
+      - echo "  task list-tracks
+      - echo "  task list-algorithms
+      - echo ""
+      - echo "Reward Functions:"
+      - echo "  task reward-centerline
+      - echo "  task reward-speed
+      - echo "  task reward-head-to-head
+      - echo "  task reward-object-avoidance
+      - echo ""
+      - echo "Sensor Configuration:"
+      - echo "  task validate-sensors SENSORS=FRONT_FACING_CAMERA,LIDAR
+      - echo "  task sensor-info
+      - echo ""
+      - echo "Quick Workflows:"
+      - echo "  task quick-test
+      - echo "  task competitive-setup
+      - echo ""
+      - echo "For a full list of tasks, run task --list"

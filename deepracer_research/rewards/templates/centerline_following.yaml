@@ -1,0 +1,203 @@
+name: "centerline_following"
+description: "Reward function for centerline following scenario"
+scenario: "CENTERLINE_FOLLOWING"
+
+parameters:
+  track_width_markers:
+    excellent: 0.08
+    good: 0.2
+    acceptable: 0.4
+    poor: 0.6
+  rewards:
+    excellent: 2.0
+    good: 1.0
+    acceptable: 0.3
+    poor: 0.1
+    penalty: 1e-3
+    completion_bonus: 15.0
+  steering:
+    smooth_threshold: 12.0
+    moderate_threshold: 20.0
+    aggressive_threshold: 28.0
+    smooth_bonus: 1.0
+    moderate_bonus: 0.5
+  speed:
+    min_speed: 1.2
+    optimal_speed: 3.0
+    max_speed: 4.0
+    speed_bonus: 1.5
+    speed_weight: 2.0
+  efficiency:
+    step_penalty_factor: 0.02
+    progress_weight: 2.0
+  waypoint:
+    direction_tolerance: 10.0
+    direction_bonus: 0.8
+
+template: |
+  # Place import statement outside of function (supported libraries: math, random, numpy, scipy, and shapely)
+  import math
+  import numpy as np
+
+  def reward_function(params):
+      '''
+      Reward function for centerline following
+
+      Available parameters from AWS DeepRacer:
+
+      Position Parameters:
+      - x (float) (meters): Agent's x-coordinate in meters
+      - y (float) (meters): Agent's y-coordinate in meters
+      - distance_from_center (float) (meters) [0 to track_width/2]: Distance in meters from the track center
+      - is_left_of_center (boolean): Flag to indicate if the agent is on the left side of track center
+
+      Movement Parameters:
+      - speed (float) (m/s) [0 to max_speed]: Agent's speed in meters per second
+      - steering_angle (float) (degrees) [-30 to 30]: Agent's steering angle in degrees
+      - heading (float) (degrees) [-180 to 180]: Agent's yaw in degrees
+
+      Track Parameters:
+      - track_width (float) (meters): Width of the track
+      - track_length (float) (meters): Track length in meters
+      - waypoints (list_tuple): List of (x,y) coordinates as milestones along the track center
+      - closest_waypoints (list_int): Indices of the two nearest waypoints
+
+      Progress Parameters:
+      - progress (float) (percentage) [0 to 100]: Percentage of track completed
+      - steps (int): Number of steps completed
+
+      Status Parameters:
+      - all_wheels_on_track (boolean): Flag to indicate if the agent is on the track
+      - is_crashed (boolean): Boolean flag to indicate whether the agent has crashed
+      - is_offtrack (boolean): Boolean flag to indicate whether the agent has gone off track
+      - is_reversed (boolean): Flag to indicate if agent is driving clockwise (True) or counter-clockwise (False)
+      '''
+
+      all_wheels_on_track = params['all_wheels_on_track']
+      distance_from_center = params['distance_from_center']
+      is_left_of_center = params['is_left_of_center']
+      heading = params['heading']
+      progress = params['progress']
+      speed = params['speed']
+      steering_angle = params['steering_angle']
+      steps = params['steps']
+      track_length = params['track_length']
+      track_width = params['track_width']
+      x = params['x']
+      y = params['y']
+
+      closest_waypoints = params['closest_waypoints']
+      waypoints = params['waypoints']
+
+      is_crashed = params['is_crashed']
+      is_offtrack = params['is_offtrack']
+      is_reversed = params['is_reversed']
+
+      if not all_wheels_on_track or is_crashed or is_offtrack:
+          return float({{parameters.rewards.penalty}})
+
+      if is_reversed:
+          return float({{parameters.rewards.penalty}})
+
+      # Initialize reward components for weighted scoring
+      reward_components = {
+          'position': 0.0,
+          'speed': 0.0,
+          'steering': 0.0,
+          'direction': 0.0,
+          'progress': 0.0,
+          'efficiency': 0.0
+      }
+
+      # Smooth centerline following with more granular rewards
+      marker_excellent = {{parameters.track_width_markers.excellent}} * track_width
+      marker_good = {{parameters.track_width_markers.good}} * track_width
+      marker_acceptable = {{parameters.track_width_markers.acceptable}} * track_width
+      marker_poor = {{parameters.track_width_markers.poor}} * track_width
+
+      if distance_from_center <= marker_excellent:
+          reward_components['position'] = {{parameters.rewards.excellent}}
+      elif distance_from_center <= marker_good:
+          position_factor = 1.0 - (distance_from_center - marker_excellent) / (marker_good - marker_excellent)
+          reward_components['position'] = {{parameters.rewards.good}} + ({{parameters.rewards.excellent}} - {{parameters.rewards.good}}) * position_factor
+      elif distance_from_center <= marker_acceptable:
+          position_factor = 1.0 - (distance_from_center - marker_good) / (marker_acceptable - marker_good)
+          reward_components['position'] = {{parameters.rewards.acceptable}} + ({{parameters.rewards.good}} - {{parameters.rewards.acceptable}}) * position_factor
+      elif distance_from_center <= marker_poor:
+          position_factor = 1.0 - (distance_from_center - marker_acceptable) / (marker_poor - marker_acceptable)
+          reward_components['position'] = {{parameters.rewards.poor}} + ({{parameters.rewards.acceptable}} - {{parameters.rewards.poor}}) * position_factor
+      else:
+          reward_components['position'] = {{parameters.rewards.penalty}}
+
+      # Optimized speed reward to prevent slow driving exploitation
+      if speed >= {{parameters.speed.optimal_speed}}:
+          speed_factor = min(speed / {{parameters.speed.max_speed}}, 1.0)
+          reward_components['speed'] = {{parameters.speed.speed_bonus}} * (speed_factor ** 1.2)
+      elif speed >= {{parameters.speed.min_speed}}:
+          speed_factor = (speed - {{parameters.speed.min_speed}}) / ({{parameters.speed.optimal_speed}} - {{parameters.speed.min_speed}})
+          reward_components['speed'] = {{parameters.speed.speed_bonus}} * speed_factor * 0.7
+      else:
+          reward_components['speed'] = -0.5  # Penalty for being too slow
+
+      # Enhanced steering smoothness with graduated rewards
+      abs_steering = abs(steering_angle)
+      if abs_steering <= {{parameters.steering.smooth_threshold}}:
+          reward_components['steering'] = {{parameters.steering.smooth_bonus}}
+      elif abs_steering <= {{parameters.steering.moderate_threshold}}:
+          steering_factor = 1.0 - (abs_steering - {{parameters.steering.smooth_threshold}}) / ({{parameters.steering.moderate_threshold}} - {{parameters.steering.smooth_threshold}})
+          reward_components['steering'] = {{parameters.steering.moderate_bonus}} + ({{parameters.steering.smooth_bonus}} - {{parameters.steering.moderate_bonus}}) * steering_factor
+      elif abs_steering <= {{parameters.steering.aggressive_threshold}}:
+          reward_components['steering'] = {{parameters.steering.moderate_bonus}} * 0.2
+      else:
+          reward_components['steering'] = -0.3
+
+      # Waypoint direction alignment
+      if len(waypoints) > closest_waypoints[1]:
+          try:
+              next_point = waypoints[closest_waypoints[1]]
+              prev_point = waypoints[closest_waypoints[0]]
+
+              track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+              track_direction = math.degrees(track_direction)
+
+              direction_diff = abs(heading - track_direction)
+              if direction_diff > 180:
+                  direction_diff = 360 - direction_diff
+
+              if direction_diff <= {{parameters.waypoint.direction_tolerance}}:
+                  alignment_factor = 1.0 - (direction_diff / {{parameters.waypoint.direction_tolerance}})
+                  reward_components['direction'] = {{parameters.waypoint.direction_bonus}} * alignment_factor
+          except (IndexError, ZeroDivisionError):
+              pass
+
+      # Progress rewards with major completion bonus
+      if progress >= 99.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}}
+      elif progress >= 90.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}} * 0.3
+      elif progress >= 75.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}} * 0.15
+
+      # Efficiency rewards
+      if steps > 0:
+          # Reward speed and progress efficiency
+          efficiency = (progress / 100.0) * (speed / {{parameters.speed.max_speed}}) / (steps / 100.0)
+          reward_components['efficiency'] = efficiency * {{parameters.efficiency.progress_weight}}
+
+          # Slight penalty for taking too many steps
+          if steps > progress * 1.5:  # More than 1.5 steps per progress percent
+              reward_components['efficiency'] -= {{parameters.efficiency.step_penalty_factor}} * (steps - progress * 1.5)
+
+      # Weighted final reward calculation
+      final_reward = (
+          reward_components['position'] +
+          reward_components['speed'] * {{parameters.speed.speed_weight}} +
+          reward_components['steering'] +
+          reward_components['direction'] +
+          reward_components['progress'] +
+          reward_components['efficiency']
+      )
+
+      reward = final_reward
+
+      return float(reward)

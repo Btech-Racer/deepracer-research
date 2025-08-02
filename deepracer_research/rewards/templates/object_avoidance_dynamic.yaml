@@ -1,0 +1,238 @@
+name: "object_avoidance_dynamic"
+description: "Reward function for avoiding dynamic objects while staying on track"
+scenario: "OBJECT_AVOIDANCE_DYNAMIC"
+
+parameters:
+  object_detection:
+    safe_distance: 0.8
+    warning_distance: 1.5
+    critical_distance: 0.4
+    prediction_time: 0.5
+  steering_limits:
+    max_steering: 30.0
+    smooth_steering: 15.0
+    evasive_steering: 25.0
+  rewards:
+    safe_navigation: 1.5
+    smooth_steering: 1.0
+    progress_bonus: 2.0
+    object_avoidance: 3.5
+    predictive_avoidance: 1.0
+    penalty: 1e-3
+  speed_control:
+    safe_speed: 2.5
+    slow_speed: 1.2
+    adaptive_speed: 3.0
+
+template: |
+  # Place import statement outside of function (supported libraries: math, random, numpy, scipy, and shapely)
+  import math
+  import numpy as np
+
+  def reward_function(params):
+      '''
+      Reward function for dynamic object 'avoidance'
+
+      Available parameters from AWS DeepRacer:
+
+      Position Parameters:
+      - x (float) (meters): Agent's x-coordinate in meters
+      - y (float) (meters): Agent's y-coordinate in meters
+      - distance_from_center (float) (meters) [0 to track_width/2]: Distance in meters from the track center
+      - is_left_of_center (boolean): Flag to indicate if the agent is on the left side of track center
+
+      Movement Parameters:
+      - speed (float) (m/s) [0 to max_speed]: Agent's speed in meters per second
+      - steering_angle (float) (degrees) [-30 to 30]: Agent's steering angle in degrees
+      - heading (float) (degrees) [-180 to 180]: Agent's yaw in degrees
+
+      Track Parameters:
+      - track_width (float) (meters): Width of the track
+      - track_length (float) (meters): Track length in meters
+      - waypoints (list_tuple): List of (x,y) coordinates as milestones along the track center
+      - closest_waypoints (list_int): Indices of the two nearest waypoints
+
+      Progress Parameters:
+      - progress (float) (percentage) [0 to 100]: Percentage of track completed
+      - steps (int): Number of steps completed
+
+      Status Parameters:
+      - all_wheels_on_track (boolean): Flag to indicate if the agent is on the track
+      - is_crashed (boolean): Boolean flag to indicate whether the agent has crashed
+      - is_offtrack (boolean): Boolean flag to indicate whether the agent has gone off track
+      - is_reversed (boolean): Flag to indicate if agent is driving clockwise (True) or counter-clockwise (False)
+
+      Objects Parameters:
+      - closest_objects (list_int): Zero-based indices of the two closest objects to agent's position
+      - objects_distance (list_float) (meters) [0 to track_length]: List of objects' distances in meters from starting line
+      - objects_heading (list_float) (degrees) [-180 to 180]: List of objects' headings in degrees
+      - objects_left_of_center (list_boolean): List of Boolean flags indicating if objects are left of center
+      - objects_location (list_tuple): List of object locations as (x,y) coordinates
+      - objects_speed (list_float) (m/s): List of objects' speeds in meters per second
+      '''
+
+      all_wheels_on_track = params['all_wheels_on_track']
+      distance_from_center = params['distance_from_center']
+      is_left_of_center = params['is_left_of_center']
+      heading = params['heading']
+      progress = params['progress']
+      speed = params['speed']
+      steering_angle = params['steering_angle']
+      steps = params['steps']
+      track_length = params['track_length']
+      track_width = params['track_width']
+      x = params['x']
+      y = params['y']
+
+      closest_waypoints = params['closest_waypoints']
+      waypoints = params['waypoints']
+
+      is_crashed = params['is_crashed']
+      is_offtrack = params['is_offtrack']
+      is_reversed = params['is_reversed']
+
+      closest_objects = params['closest_objects']
+      objects_distance = params['objects_distance']
+      objects_heading = params['objects_heading']
+      objects_left_of_center = params['objects_left_of_center']
+      objects_location = params['objects_location']
+      objects_speed = params['objects_speed']
+
+      if not all_wheels_on_track or is_crashed or is_offtrack:
+          return float({{parameters.rewards.penalty}})
+
+      if is_reversed:
+          return float({{parameters.rewards.penalty}})
+
+      reward = {{parameters.rewards.safe_navigation}}
+
+      object_risk_factor = 1.0
+      closest_object_distance = float('inf')
+      dynamic_threat_level = 0.0
+
+      if objects_location and len(objects_location) > 0:
+          current_threats = []
+
+          for i, obj_location in enumerate(objects_location):
+              obj_x, obj_y = obj_location
+              obj_speed = objects_speed[i] if i < len(objects_speed) else 0.0
+              obj_heading = objects_heading[i] if i < len(objects_heading) else 0.0
+
+              distance_to_obj = math.sqrt((x - obj_x)**2 + (y - obj_y)**2)
+
+              if obj_speed > 0.1:
+                  prediction_time = {{parameters.object_detection.prediction_time}}
+
+                  obj_heading_rad = math.radians(obj_heading)
+                  future_obj_x = obj_x + obj_speed * prediction_time * math.cos(obj_heading_rad)
+                  future_obj_y = obj_y + obj_speed * prediction_time * math.sin(obj_heading_rad)
+
+                  our_heading_rad = math.radians(heading)
+                  future_our_x = x + speed * prediction_time * math.cos(our_heading_rad)
+                  future_our_y = y + speed * prediction_time * math.sin(our_heading_rad)
+
+                  future_distance = math.sqrt((future_our_x - future_obj_x)**2 + (future_our_y - future_obj_y)**2)
+
+                  effective_distance = min(distance_to_obj, future_distance)
+
+                  relative_speed = abs(speed - obj_speed)
+                  threat_multiplier = 1.0 + (relative_speed / 5.0)
+
+                  threat_level = threat_multiplier / max(effective_distance, 0.1)
+                  dynamic_threat_level = max(dynamic_threat_level, threat_level)
+              else:
+                  effective_distance = distance_to_obj
+
+              current_threats.append(effective_distance)
+              closest_object_distance = min(closest_object_distance, effective_distance)
+
+          if closest_object_distance >= {{parameters.object_detection.warning_distance}}:
+              # Safe distance from dynamic objects - full reward
+              reward += {{parameters.rewards.object_avoidance}}
+              object_risk_factor = 1.0
+          elif closest_object_distance >= {{parameters.object_detection.safe_distance}}:
+              # Warning zone - reduced reward for being closer to moving objects
+              reward += {{parameters.rewards.object_avoidance}} * 0.3
+              object_risk_factor = 0.3
+          elif closest_object_distance >= {{parameters.object_detection.critical_distance}}:
+              # Danger zone - minimal reward for being too close to moving objects
+              reward += {{parameters.rewards.object_avoidance}} * 0.05
+              object_risk_factor = 0.05
+          else:
+              # Too close to dynamic object - severe penalty
+              reward *= 0.01
+              object_risk_factor = 0.01
+
+          if dynamic_threat_level > 0.5:
+              reward += {{parameters.rewards.predictive_avoidance}}
+
+      if closest_object_distance < {{parameters.object_detection.warning_distance}}:
+          if dynamic_threat_level > 1.0:
+              if speed <= {{parameters.speed_control.slow_speed}}:
+                  reward += 0.8
+              elif speed <= {{parameters.speed_control.safe_speed}}:
+                  reward += 0.4
+              else:
+                  reward *= 0.3
+          else:
+              if speed <= {{parameters.speed_control.safe_speed}}:
+                  reward += 0.5
+              else:
+                  reward *= 0.6
+      else:
+          if speed >= {{parameters.speed_control.adaptive_speed}}:
+              reward += 0.5
+          elif speed >= {{parameters.speed_control.safe_speed}}:
+              reward += 0.3
+
+      abs_steering = abs(steering_angle)
+      if closest_object_distance < {{parameters.object_detection.warning_distance}}:
+          if dynamic_threat_level > 1.0:
+              if abs_steering <= {{parameters.steering_limits.evasive_steering}}:
+                  reward += {{parameters.rewards.smooth_steering}} * 0.7
+          else:
+              if abs_steering <= {{parameters.steering_limits.max_steering}}:
+                  reward += {{parameters.rewards.smooth_steering}} * 0.5
+      else:
+          if abs_steering <= {{parameters.steering_limits.smooth_steering}}:
+              reward += {{parameters.rewards.smooth_steering}}
+          elif abs_steering <= {{parameters.steering_limits.max_steering}}:
+              reward += {{parameters.rewards.smooth_steering}} * 0.5
+
+      if closest_object_distance < {{parameters.object_detection.safe_distance}}:
+          if distance_from_center <= track_width * 0.45:
+              reward += 0.4
+      else:
+          if distance_from_center <= track_width * 0.25:
+              reward += 0.6
+          elif distance_from_center <= track_width * 0.5:
+              reward += 0.3
+
+      if progress >= 99.0:
+          reward += {{parameters.rewards.progress_bonus}} * 5
+      elif progress >= 80.0:
+          reward += {{parameters.rewards.progress_bonus}}
+
+      if steps > 0:
+          efficiency = progress / steps
+          dynamic_efficiency_factor = max(0.5, 1.0 - (dynamic_threat_level * 0.3))
+          safety_efficiency = efficiency * object_risk_factor * dynamic_efficiency_factor
+          reward += safety_efficiency * 0.15
+
+      if objects_left_of_center and len(objects_left_of_center) > 0 and dynamic_threat_level > 0.5:
+          moving_objects_left = 0
+          moving_objects_right = 0
+
+          for i, is_left in enumerate(objects_left_of_center):
+              if i < len(objects_speed) and objects_speed[i] > 0.1:
+                  if is_left:
+                      moving_objects_left += 1
+                  else:
+                      moving_objects_right += 1
+
+          if moving_objects_left > moving_objects_right and not is_left_of_center:
+              reward += 0.3
+          elif moving_objects_right > moving_objects_left and is_left_of_center:
+              reward += 0.3
+
+      return float(reward)

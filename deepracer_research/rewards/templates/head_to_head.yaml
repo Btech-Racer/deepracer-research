@@ -1,0 +1,405 @@
+name: "head_to_head_racing"
+description: "Head-to-head racing reward function optimized for competitive overtaking and speed dominance"
+scenario: "HEAD_TO_HEAD"
+
+parameters:
+  racing_strategy:
+    aggressive_bonus: 3.5          # Higher than object_avoidance (3.0) - rewards aggression
+    overtake_reward: 8.0           # Major reward for overtaking maneuvers
+    position_dominance: 4.0        # Reward for being ahead of bots
+    drafting_bonus: 2.0            # Reward for following closely behind for overtake setup
+    safe_distance: 0.6             # Closer than object_avoidance (0.8) - more aggressive
+    critical_distance: 0.3         # Closer than object_avoidance (0.4) - racing tolerance
+  speed_control:
+    min_speed: 2.0                 # Higher than centerline (1.2) and object_avoidance (1.0)
+    racing_speed: 4.0              # Target racing speed - higher than centerline (3.0)
+    max_speed: 5.0                 # Maximum allowable speed
+    overtake_speed: 4.5            # Speed when attempting overtake
+    bot_speed_threshold: 0.8       # Speed difference to trigger overtake behavior
+    speed_advantage_multiplier: 2.5 # Multiplier when quicker than bots
+  positioning:
+    racing_line_bonus: 2.5         # Higher than centerline (excellent: 2.0)
+    lane_change_reward: 3.0        # High reward for strategic lane changes
+    centerline_tolerance: 0.6      # More flexible than centerline (0.4) - allows racing line
+    outside_line_bonus: 1.5       # Reward for using outside line to overtake
+    inside_line_bonus: 2.0         # Reward for defensive inside line
+  collision_avoidance:
+    warning_distance: 1.0          # Closer than object_avoidance (1.5) - more aggressive
+    safe_distance: 0.6             # Racing distance - much closer than object_avoidance
+    critical_distance: 0.3         # Racing tolerance - closer than object_avoidance
+    collision_penalty: 15.0        # Higher penalty to balance aggressive rewards
+  steering_control:
+    smooth_threshold: 15.0         # More tolerance than centerline (12.0)
+    racing_threshold: 25.0         # Allow aggressive steering for overtakes
+    max_steering: 30.0             # Full steering range allowed
+    overtake_steering_bonus: 1.0   # Reward decisive steering in overtake situations
+  tactical_racing:
+    lookahead_points: 4            # More strategic planning than centerline (3)
+    direction_tolerance: 20.0      # More flexible than centerline (10.0)
+    racing_line_deviation: 0.5     # Allow more deviation for tactical positioning
+    bot_prediction_time: 0.6       # Predict bot movements for strategic planning
+    position_advantage_threshold: 5.0  # Progress advantage to maintain vs bots
+
+template: |
+  # Place import statement outside of function (supported libraries: math, random, numpy, scipy, and shapely)
+  import math
+  import numpy as np
+
+  def reward_function(params):
+      '''
+      Head-to-head racing reward function
+
+      Available parameters from AWS DeepRacer:
+
+      Position Parameters:
+      - x (float) (meters): Agent's x-coordinate in meters
+      - y (float) (meters): Agent's y-coordinate in meters
+      - distance_from_center (float) (meters) [0 to track_width/2]: Distance in meters from the track center
+      - is_left_of_center (boolean): Flag to indicate if the agent is on the left side of track center
+
+      Movement Parameters:
+      - speed (float) (m/s) [0 to max_speed]: Agent's speed in meters per second
+      - steering_angle (float) (degrees) [-30 to 30]: Agent's steering angle in degrees
+      - heading (float) (degrees) [-180 to 180]: Agent's yaw in degrees
+
+      Track Parameters:
+      - track_width (float) (meters): Width of the track
+      - track_length (float) (meters): Track length in meters
+      - waypoints (list_tuple): List of (x,y) coordinates as milestones along the track center
+      - closest_waypoints (list_int): Indices of the two nearest waypoints
+
+      Progress Parameters:
+      - progress (float) (percentage) [0 to 100]: Percentage of track completed
+      - steps (int): Number of steps completed
+
+      Status Parameters:
+      - all_wheels_on_track (boolean): Flag to indicate if the agent is on the track
+      - is_crashed (boolean): Boolean flag to indicate whether the agent has crashed
+      - is_offtrack (boolean): Boolean flag to indicate whether the agent has gone off track
+      - is_reversed (boolean): Flag to indicate if agent is driving clockwise (True) or counter-clockwise (False)
+
+      Head-to-Head Parameters:
+      - closest_objects (list_int): Zero-based indices of the two closest objects to agent's position
+      - objects_distance (list_float) (meters) [0 to track_length]: List of objects' distances in meters from starting line
+      - objects_heading (list_float) (degrees) [-180 to 180]: List of objects' headings in degrees
+      - objects_left_of_center (list_boolean): List of Boolean flags indicating if objects are left of center
+      - objects_location (list_tuple): List of object locations as (x,y) coordinates
+      - objects_speed (list_float) (m/s): List of objects' speeds in meters per second
+      '''
+
+      # Get all parameters
+      all_wheels_on_track = params['all_wheels_on_track']
+      distance_from_center = params['distance_from_center']
+      is_left_of_center = params['is_left_of_center']
+      heading = params['heading']
+      progress = params['progress']
+      speed = params['speed']
+      steering_angle = params['steering_angle']
+      steps = params['steps']
+      track_length = params['track_length']
+      track_width = params['track_width']
+      x = params['x']
+      y = params['y']
+
+      closest_waypoints = params['closest_waypoints']
+      waypoints = params['waypoints']
+
+      is_crashed = params['is_crashed']
+      is_offtrack = params['is_offtrack']
+      is_reversed = params['is_reversed']
+
+      # Head-to-head specific parameters
+      closest_objects = params['closest_objects']
+      objects_distance = params['objects_distance']
+      objects_heading = params['objects_heading']
+      objects_left_of_center = params['objects_left_of_center']
+      objects_location = params['objects_location']
+      objects_speed = params['objects_speed']
+
+      # Immediate failure conditions - Racing penalties
+      if not all_wheels_on_track or is_crashed or is_offtrack:
+          return float({{parameters.collision_avoidance.collision_penalty}} * -1)
+
+      if is_reversed:
+          return float(1e-3)
+
+      # Base racing reward - higher than conservative scenarios
+      reward = {{parameters.racing_strategy.aggressive_bonus}}
+
+      speed_reward = 0.0
+
+      if speed >= {{parameters.speed_control.racing_speed}}:
+          # AGGRESSIVE: Exponential reward for racing speeds (vs linear in centerline)
+          speed_factor = min(speed / {{parameters.speed_control.max_speed}}, 1.0)
+          speed_reward = {{parameters.speed_control.speed_advantage_multiplier}} * (speed_factor ** 2.5)
+
+          # Extra bonus for sustained high speed (racing mentality)
+          if speed >= {{parameters.speed_control.overtake_speed}}:
+              speed_reward += {{parameters.racing_strategy.aggressive_bonus}}
+
+      elif speed >= {{parameters.speed_control.min_speed}}:
+          # Moderate reward for acceptable racing speed
+          speed_factor = (speed - {{parameters.speed_control.min_speed}}) / ({{parameters.speed_control.racing_speed}} - {{parameters.speed_control.min_speed}})
+          speed_reward = speed_factor * 2.0
+      else:
+          # RACING PENALTY: Heavy penalty for being too slow in racing
+          speed_reward = -2.0  # Harsher than centerline scenarios
+
+      reward += speed_reward
+      object_reward = 0.0
+      closest_object_distance = float('inf')
+      objects_ahead = []
+      objects_behind = []
+      bot_speeds = []
+
+      if objects_location and len(objects_location) > 0:
+          # Enhanced object analysis using numpy for racing intelligence
+          objects_array = np.array(objects_location)
+          agent_pos = np.array([x, y])
+          distances = np.linalg.norm(objects_array - agent_pos, axis=1)
+
+          closest_obj_index = np.argmin(distances)
+          closest_object_distance = distances[closest_obj_index]
+
+          # Categorize objects by position relative to our progress
+          current_progress_distance = progress * track_length / 100
+
+          for i, obj_location in enumerate(objects_location):
+              obj_progress = objects_distance[i] if i < len(objects_distance) else 0
+              obj_speed = objects_speed[i] if i < len(objects_speed) else 0
+              bot_speeds.append(obj_speed)
+
+              if obj_progress > current_progress_distance + 5:  # 5m ahead threshold
+                  objects_ahead.append(i)
+              elif obj_progress < current_progress_distance - 5:  # 5m behind threshold
+                  objects_behind.append(i)
+
+          if closest_object_distance >= {{parameters.collision_avoidance.warning_distance}}:
+              # RACING CLEAR TRACK: Maximum speed rewards
+              object_reward = {{parameters.racing_strategy.aggressive_bonus}} * 2
+
+              # Speed dominance bonus when clear track
+              if speed >= {{parameters.speed_control.racing_speed}}:
+                  object_reward += {{parameters.racing_strategy.position_dominance}}
+
+          elif closest_object_distance >= {{parameters.collision_avoidance.safe_distance}}:
+              # RACING ZONE: Strategic positioning for overtakes
+              object_reward = {{parameters.racing_strategy.aggressive_bonus}}
+
+              # OVERTAKING LOGIC: Unlike object_avoidance, reward getting closer for overtakes
+              if objects_ahead and speed > {{parameters.speed_control.min_speed}}:
+                  # Calculate speed advantage
+                  avg_bot_speed = np.mean([objects_speed[i] for i in objects_ahead if i < len(objects_speed)])
+                  if speed > avg_bot_speed + {{parameters.speed_control.bot_speed_threshold}}:
+                      object_reward += {{parameters.racing_strategy.overtake_reward}}
+
+                      # Lane positioning bonus for overtake setup
+                      closest_ahead_idx = objects_ahead[0] if objects_ahead else closest_obj_index
+                      if closest_ahead_idx < len(objects_left_of_center):
+                          bot_left = objects_left_of_center[closest_ahead_idx]
+                          # Reward being on opposite side for overtake
+                          if bot_left != is_left_of_center:
+                              object_reward += {{parameters.positioning.lane_change_reward}}
+
+              # DRAFTING BONUS: Reward following closely behind for slipstream
+              if objects_ahead and closest_object_distance > {{parameters.racing_strategy.safe_distance}} * 0.8:
+                  object_reward += {{parameters.racing_strategy.drafting_bonus}}
+
+          elif closest_object_distance >= {{parameters.collision_avoidance.critical_distance}}:
+              # CRITICAL RACING ZONE: Controlled aggression
+              object_reward = 1.0
+
+              # Still reward overtake attempts in critical zone (vs object_avoidance conservatism)
+              if speed <= {{parameters.speed_control.racing_speed}} * 0.8:
+                  object_reward += 0.5  # Reward appropriate speed control
+
+          else:
+              # COLLISION IMMINENT: Racing penalty
+              object_reward = -{{parameters.collision_avoidance.collision_penalty}}
+
+      reward += object_reward
+      racing_line_reward = 0.0
+
+      # Calculate optimal racing line based on tactical situation
+      if len(waypoints) > closest_waypoints[1] + {{parameters.tactical_racing.lookahead_points}}:
+          try:
+              # Get future waypoints for racing line calculation
+              current_point = waypoints[closest_waypoints[0]]
+              next_point = waypoints[closest_waypoints[1]]
+              future_point = waypoints[closest_waypoints[1] + {{parameters.tactical_racing.lookahead_points}}]
+
+              # Calculate track direction
+              track_direction = math.atan2(next_point[1] - current_point[1],
+                                         next_point[0] - current_point[0])
+              track_direction = math.degrees(track_direction)
+
+              # Calculate future track direction for racing line
+              future_direction = math.atan2(future_point[1] - next_point[1],
+                                          future_point[0] - next_point[0])
+              future_direction = math.degrees(future_direction)
+
+              # Heading alignment with track direction - more flexible than centerline
+              direction_diff = abs(heading - track_direction)
+              if direction_diff > 180:
+                  direction_diff = 360 - direction_diff
+
+              if direction_diff <= {{parameters.tactical_racing.direction_tolerance}}:
+                  alignment_bonus = 1.0 - (direction_diff / {{parameters.tactical_racing.direction_tolerance}})
+                  racing_line_reward += {{parameters.positioning.racing_line_bonus}} * alignment_bonus
+
+              # RACING STRATEGY: Adaptive speed based on curvature and competition
+              direction_change = abs(future_direction - track_direction)
+              if direction_change > 180:
+                  direction_change = 360 - direction_change
+
+              # Racing speed optimization (more aggressive than centerline)
+              if direction_change > 45:  # Sharp turn ahead
+                  optimal_speed = {{parameters.speed_control.min_speed}} + 1.0  # Higher than centerline
+                  # Reward late braking in racing
+                  if speed >= optimal_speed and closest_object_distance > {{parameters.collision_avoidance.safe_distance}}:
+                      racing_line_reward += 1.0
+              elif direction_change > 20:  # Medium turn
+                  optimal_speed = {{parameters.speed_control.racing_speed}} - 0.5
+                  if speed >= optimal_speed:
+                      racing_line_reward += 1.5
+              else:  # Straight or slight turn - FULL ATTACK MODE
+                  optimal_speed = {{parameters.speed_control.max_speed}}
+                  if speed >= optimal_speed * 0.9:
+                      racing_line_reward += {{parameters.racing_strategy.aggressive_bonus}}
+
+              # Tactical positioning bonus based on objects
+              if objects_ahead and closest_object_distance < {{parameters.collision_avoidance.warning_distance}}:
+                  # Reward positioning for overtake opportunities
+                  if distance_from_center > track_width * 0.3:  # Outside line setup
+                      racing_line_reward += {{parameters.positioning.outside_line_bonus}}
+                  elif distance_from_center < track_width * 0.15:  # Inside line defense
+                      racing_line_reward += {{parameters.positioning.inside_line_bonus}}
+
+          except (IndexError, ZeroDivisionError):
+              pass
+
+      reward += racing_line_reward
+      position_reward = 0.0
+
+      # Racing line flexibility (vs strict centerline following)
+      centerline_threshold = {{parameters.positioning.centerline_tolerance}} * track_width
+
+      if distance_from_center <= centerline_threshold * 0.5:
+          # Excellent racing line position
+          position_reward = {{parameters.positioning.racing_line_bonus}}
+      elif distance_from_center <= centerline_threshold:
+          # Good racing line position - allow tactical deviation
+          position_factor = 1.0 - (distance_from_center / centerline_threshold)
+          position_reward = position_factor * {{parameters.positioning.racing_line_bonus}} * 0.7
+
+          # Bonus for tactical positioning near objects
+          if closest_object_distance < {{parameters.collision_avoidance.warning_distance}}:
+              position_reward += {{parameters.positioning.lane_change_reward}} * 0.5
+      else:
+          # Outside racing line - minimize penalty if it's tactical
+          if closest_object_distance < {{parameters.collision_avoidance.safe_distance}}:
+              # Tactical wide line for overtaking - reduced penalty
+              position_reward = -0.1
+          else:
+              # No tactical reason - standard penalty
+              position_reward = -0.5
+
+      reward += position_reward
+
+      steering_reward = 0.0
+      abs_steering = abs(steering_angle)
+
+      if abs_steering <= {{parameters.steering_control.smooth_threshold}}:
+          # Smooth steering - good for most situations
+          steering_reward = 1.0
+      elif abs_steering <= {{parameters.steering_control.racing_threshold}}:
+          # Racing steering - allowed and rewarded in tactical situations
+          if closest_object_distance < {{parameters.collision_avoidance.warning_distance}}:
+              # Tactical steering for overtakes/defense
+              steering_reward = {{parameters.steering_control.overtake_steering_bonus}}
+          else:
+              # Moderate steering on clear track
+              steering_reward = 0.5
+      else:
+          # Maximum steering - only penalize if not tactical
+          if closest_object_distance < {{parameters.collision_avoidance.safe_distance}}:
+              # Emergency/tactical steering allowed
+              steering_reward = 0.2
+          else:
+              # Excessive steering with no reason
+              steering_reward = -0.3
+
+      reward += steering_reward
+
+      # Racing completion bonuses - higher stakes than other scenarios
+      if progress >= 99.0:
+          # RACE VICTORY: Massive bonus for completing ahead of competition
+          reward += 100.0  # Double centerline completion bonus
+      elif progress >= 90.0:
+          reward += 25.0   # Major progress bonus
+      elif progress >= 75.0:
+          reward += 10.0   # Good progress bonus
+      elif progress >= 50.0:
+          reward += 5.0    # Moderate progress bonus
+
+      # RACING EFFICIENCY: Speed × progress efficiency (emphasize speed vs time)
+      if steps > 0:
+          # Racing efficiency emphasizes speed over step conservation
+          speed_efficiency = speed * (progress / 100.0) / (steps / 100.0)
+          reward += speed_efficiency * 15.0  # Higher than centerline scenarios
+
+      # Position dominance bonus - reward being ahead of bots
+      if objects_behind:
+          position_advantage = len(objects_behind) / max(len(objects_location), 1)
+          reward += {{parameters.racing_strategy.position_dominance}} * position_advantage
+
+      # Speed advantage bonus - reward outpacing competition
+      if bot_speeds and speed > max(bot_speeds) + {{parameters.speed_control.bot_speed_threshold}}:
+          speed_dominance = (speed - max(bot_speeds)) / {{parameters.speed_control.max_speed}}
+          reward += {{parameters.speed_control.speed_advantage_multiplier}} * speed_dominance
+
+      # Tactical overtaking bonus - reward successful overtake execution
+      if objects_ahead and closest_object_distance < {{parameters.collision_avoidance.warning_distance}}:
+          if speed >= {{parameters.speed_control.overtake_speed}}:
+              # High speed overtake attempt
+              reward += {{parameters.racing_strategy.overtake_reward}}
+
+              # Lane positioning for overtake
+              if distance_from_center > track_width * 0.35:  # Outside overtake
+                  reward += {{parameters.positioning.outside_line_bonus}}
+              elif distance_from_center < track_width * 0.15:  # Inside overtake
+                  reward += {{parameters.positioning.inside_line_bonus}}
+
+      # Defensive driving bonus - when bots are behind and catching up
+      if objects_behind and bot_speeds:
+          max_bot_speed = max([objects_speed[i] for i in objects_behind if i < len(objects_speed)])
+          if max_bot_speed > speed * 0.9:  # Bot catching up
+              # Reward maintaining racing line under pressure
+              if distance_from_center <= centerline_threshold * 0.6:
+                  reward += {{parameters.positioning.inside_line_bonus}}
+
+      # Clear track exploitation - maximize speed when no immediate competition
+      if closest_object_distance > {{parameters.collision_avoidance.warning_distance}} * 1.5:
+          if speed >= {{parameters.speed_control.racing_speed}}:
+              # Reward exploiting clear track for speed
+              clear_track_bonus = (speed / {{parameters.speed_control.max_speed}}) ** 2
+              reward += {{parameters.racing_strategy.aggressive_bonus}} * clear_track_bonus
+
+      # Advanced lane change rewards for racing tactics
+      if objects_location and len(objects_location) > 0:
+          for i, obj_left in enumerate(objects_left_of_center):
+              if i < len(objects_location):
+                  obj_distance = math.sqrt((x - objects_location[i][0])**2 + (y - objects_location[i][1])**2)
+
+                  # Tactical lane change rewards based on distance and speed
+                  if {{parameters.collision_avoidance.safe_distance}} <= obj_distance <= {{parameters.collision_avoidance.warning_distance}}:
+                      if obj_left != is_left_of_center:  # Different sides
+                          # Reward strategic positioning
+                          if speed >= {{parameters.speed_control.racing_speed}} * 0.8:
+                              reward += {{parameters.positioning.lane_change_reward}}
+
+                          # Extra bonus if this is an overtaking opportunity
+                          if i < len(objects_speed) and speed > objects_speed[i] + {{parameters.speed_control.bot_speed_threshold}}:
+                              reward += {{parameters.racing_strategy.overtake_reward}} * 0.5
+
+      return float(reward)

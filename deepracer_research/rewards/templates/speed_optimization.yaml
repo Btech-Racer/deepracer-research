@@ -1,0 +1,222 @@
+name: "speed_optimization"
+description: "Reward function for speed optimization scenario"
+scenario: "SPEED_OPTIMIZATION"
+
+parameters:
+  speed_thresholds:
+    min_speed: 1.5
+    target_speed: 3.5
+    max_speed: 4.5
+    speed_bonus_weight: 3.0
+  centerline_tolerance: 0.35
+  rewards:
+    speed_bonus: 2.5
+    centerline_bonus: 1.2
+    base_reward: 0.2
+    penalty: 1e-3
+    completion_bonus: 25.0
+  steering:
+    aggressive_threshold: 25.0
+    smooth_threshold: 12.0
+    smooth_bonus: 0.8
+  waypoint:
+    direction_threshold: 12.0
+    direction_bonus: 1.0
+    lookahead_points: 2
+  racing_line:
+    optimal_deviation: 0.15
+    racing_line_weight: 1.5
+  efficiency:
+    step_efficiency_weight: 0.15
+    progress_weight: 1.8
+
+template: |
+  # Place import statement outside of function (supported libraries: math, random, numpy, scipy, and shapely)
+  import math
+
+  def reward_function(params):
+      '''
+      Reward function for speed optimization
+
+      Available parameters from AWS DeepRacer:
+
+      Position Parameters:
+      - x (float) (meters): Agent's x-coordinate in meters
+      - y (float) (meters): Agent's y-coordinate in meters
+      - distance_from_center (float) (meters) [0 to track_width/2]: Distance in meters from the track center
+      - is_left_of_center (boolean): Flag to indicate if the agent is on the left side of track center
+
+      Movement Parameters:
+      - speed (float) (m/s) [0 to max_speed]: Agent's speed in meters per second
+      - steering_angle (float) (degrees) [-30 to 30]: Agent's steering angle in degrees
+      - heading (float) (degrees) [-180 to 180]: Agent's yaw in degrees
+
+      Track Parameters:
+      - track_width (float) (meters): Width of the track
+      - track_length (float) (meters): Track length in meters
+      - waypoints (list_tuple): List of (x,y) coordinates as milestones along the track center
+      - closest_waypoints (list_int): Indices of the two nearest waypoints
+
+      Progress Parameters:
+      - progress (float) (percentage) [0 to 100]: Percentage of track completed
+      - steps (int): Number of steps completed
+
+      Status Parameters:
+      - all_wheels_on_track (boolean): Flag to indicate if the agent is on the track
+      - is_crashed (boolean): Boolean flag to indicate whether the agent has crashed
+      - is_offtrack (boolean): Boolean flag to indicate whether the agent has gone off track
+      - is_reversed (boolean): Flag to indicate if agent is driving clockwise (True) or counter-clockwise (False)
+      '''
+
+      all_wheels_on_track = params['all_wheels_on_track']
+      distance_from_center = params['distance_from_center']
+      is_left_of_center = params['is_left_of_center']
+      heading = params['heading']
+      progress = params['progress']
+      speed = params['speed']
+      steering_angle = params['steering_angle']
+      steps = params['steps']
+      track_length = params['track_length']
+      track_width = params['track_width']
+      x = params['x']
+      y = params['y']
+
+      closest_waypoints = params['closest_waypoints']
+      waypoints = params['waypoints']
+
+      is_crashed = params['is_crashed']
+      is_offtrack = params['is_offtrack']
+      is_reversed = params['is_reversed']
+
+      if not all_wheels_on_track or is_crashed or is_offtrack:
+          return float({{parameters.rewards.penalty}})
+
+      if is_reversed:
+          return float({{parameters.rewards.penalty}})
+
+      # Initialize weighted reward
+      reward_components = {
+          'base': {{parameters.rewards.base_reward}},
+          'speed': 0.0,
+          'position': 0.0,
+          'direction': 0.0,
+          'steering': 0.0,
+          'progress': 0.0,
+          'efficiency': 0.0
+      }
+
+      if speed >= {{parameters.speed_thresholds.target_speed}}:
+          speed_factor = min(speed / {{parameters.speed_thresholds.max_speed}}, 1.0)
+          reward_components['speed'] = {{parameters.rewards.speed_bonus}} * (speed_factor ** 1.5)
+      elif speed >= {{parameters.speed_thresholds.min_speed}}:
+          speed_factor = (speed - {{parameters.speed_thresholds.min_speed}}) / ({{parameters.speed_thresholds.target_speed}} - {{parameters.speed_thresholds.min_speed}})
+          reward_components['speed'] = {{parameters.rewards.speed_bonus}} * speed_factor * 0.6
+      else:
+          # Penalty for being too slow to prevent exploitation
+          reward_components['speed'] = -1.0
+
+      # Allow deviation from centerline for optimal racing line
+      racing_line_threshold = {{parameters.racing_line.optimal_deviation}} * track_width
+      if distance_from_center <= racing_line_threshold:
+          position_factor = 1.0 - (distance_from_center / racing_line_threshold)
+          reward_components['position'] = {{parameters.rewards.centerline_bonus}} * position_factor
+      elif distance_from_center <= {{parameters.centerline_tolerance}} * track_width:
+          position_factor = 1.0 - (distance_from_center / ({{parameters.centerline_tolerance}} * track_width))
+          reward_components['position'] = {{parameters.rewards.centerline_bonus}} * position_factor * 0.5
+      else:
+          reward_components['position'] = -0.5
+
+      if len(waypoints) > closest_waypoints[1] + {{parameters.waypoint.lookahead_points}}:
+          try:
+              current_point = waypoints[closest_waypoints[0]]
+              next_point = waypoints[closest_waypoints[1]]
+              future_point = waypoints[closest_waypoints[1] + {{parameters.waypoint.lookahead_points}}]
+
+              # Calculate track direction
+              track_direction = math.atan2(next_point[1] - current_point[1], next_point[0] - current_point[0])
+              track_direction = math.degrees(track_direction)
+
+              # Calculate future direction for curvature analysis
+              future_direction = math.atan2(future_point[1] - next_point[1], future_point[0] - next_point[0])
+              future_direction = math.degrees(future_direction)
+
+              # Heading alignment reward
+              direction_diff = abs(heading - track_direction)
+              if direction_diff > 180:
+                  direction_diff = 360 - direction_diff
+
+              if direction_diff <= {{parameters.waypoint.direction_threshold}}:
+                  alignment_factor = 1.0 - (direction_diff / {{parameters.waypoint.direction_threshold}})
+                  reward_components['direction'] = {{parameters.waypoint.direction_bonus}} * alignment_factor
+
+              # Speed optimization based on upcoming curvature
+              direction_change = abs(future_direction - track_direction)
+              if direction_change > 180:
+                  direction_change = 360 - direction_change
+
+              # Adjust speed reward based on upcoming turns
+              if direction_change > 30:  # Sharp turn ahead
+                  optimal_speed = {{parameters.speed_thresholds.min_speed}} + 1.0
+              elif direction_change > 15:  # Medium turn
+                  optimal_speed = {{parameters.speed_thresholds.target_speed}} - 0.5
+              else:
+                  optimal_speed = {{parameters.speed_thresholds.max_speed}}
+
+              speed_diff = abs(speed - optimal_speed)
+              if speed_diff <= 0.5:
+                  reward_components['direction'] += 0.5
+
+          except (IndexError, ZeroDivisionError):
+              if len(waypoints) > closest_waypoints[1]:
+                  next_point = waypoints[closest_waypoints[1]]
+                  prev_point = waypoints[closest_waypoints[0]]
+
+                  track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+                  track_direction = math.degrees(track_direction)
+
+                  direction_diff = abs(heading - track_direction)
+                  if direction_diff > 180:
+                      direction_diff = 360 - direction_diff
+
+                  if direction_diff <= {{parameters.waypoint.direction_threshold}}:
+                      reward_components['direction'] = {{parameters.waypoint.direction_bonus}}
+
+      abs_steering = abs(steering_angle)
+      if abs_steering <= {{parameters.steering.smooth_threshold}}:
+          reward_components['steering'] = {{parameters.steering.smooth_bonus}}
+      elif abs_steering <= {{parameters.steering.aggressive_threshold}}:
+          steering_factor = 1.0 - (abs_steering - {{parameters.steering.smooth_threshold}}) / ({{parameters.steering.aggressive_threshold}} - {{parameters.steering.smooth_threshold}})
+          reward_components['steering'] = {{parameters.steering.smooth_bonus}} * steering_factor * 0.5
+      else:
+          reward_components['steering'] = -0.3
+
+      if progress >= 99.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}}
+      elif progress >= 90.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}} * 0.4
+      elif progress >= 75.0:
+          reward_components['progress'] = {{parameters.rewards.completion_bonus}} * 0.2
+
+      if steps > 0:
+          efficiency = (progress / 100.0) * (speed / {{parameters.speed_thresholds.max_speed}}) / (steps / 100.0)
+          reward_components['efficiency'] = efficiency * {{parameters.efficiency.step_efficiency_weight}}
+
+          progress_efficiency = (progress / steps) * {{parameters.efficiency.progress_weight}}
+          reward_components['efficiency'] += progress_efficiency
+
+      final_reward = (
+          reward_components['base'] +
+          reward_components['speed'] * {{parameters.speed_thresholds.speed_bonus_weight}} +
+          reward_components['position'] +
+          reward_components['direction'] +
+          reward_components['steering'] +
+          reward_components['progress'] +
+          reward_components['efficiency']
+      )
+
+      if distance_from_center <= racing_line_threshold and speed >= {{parameters.speed_thresholds.target_speed}}:
+          final_reward += {{parameters.racing_line.racing_line_weight}}
+
+      reward = final_reward
+
+      return float(reward)

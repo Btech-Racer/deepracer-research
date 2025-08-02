@@ -1,0 +1,20 @@
+{
+  "batch_size": 96,
+  "learning_rate": "0.0003",
+  "entropy_coefficient": "0.015",
+  "discount_factor": 0.99,
+  "loss_type": "huber",
+  "num_episodes_between_training": 10,
+  "num_epochs": 4,
+  "stack_size": 4,
+  "lr_decay_rate": "0.9998",
+  "beta_entropy": 0.02,
+  "epsilon": "0.18",
+  "exploration_type": "categorical",
+  "e_greedy_value": 0.05,
+  "epsilon_steps": 10000,
+  "term_condition_max_episodes": "1000",
+  "term_condition_avg_score": "100000",
+  "beta": "0.01",
+  "sac_alpha": 0.2
+}

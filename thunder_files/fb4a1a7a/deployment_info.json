@@ -1,0 +1,11 @@
+{
+  "model_id": "fb4a1a7a",
+  "run_id": "fb4a1a7a-1754060868",
+  "workers": 4,
+  "worker_mode": "swarm",
+  "race_type": "TIME_TRIAL",
+  "s3_bucket": "deepracer-thunder-compute-fb4a1a7a-20250801-160748-925c75a0",
+  "deployment_type": "thunder_compute_files",
+  "created_at": "2025-07-22 16:07:49",
+  "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/fb4a1a7a"
+}

@@ -1,0 +1,104 @@
+name: "Basic Fallback"
+description: "Simple comprehensive reward function used as fallback when specific scenarios are unavailable"
+scenario: "BASIC_FALLBACK"
+
+parameters:
+  track_width_tolerance: 0.5
+  off_track_penalty: 1e-3
+  min_reward: 0.01
+  speed_factor: 0.3
+  progress_factor: 0.4
+  completion_bonus: 10.0
+  steering_threshold: 20.0
+  steering_penalty: 0.1
+  max_speed: 4.0
+
+template: |
+  # Place import statement outside of function (supported libraries: math, random, numpy, scipy, and shapely)
+  import math
+
+  def reward_function(params):
+      """
+      Basic fallback reward function
+
+      Available parameters from AWS DeepRacer:
+
+      Position Parameters:
+      - x (float) (meters): Agent's x-coordinate in meters
+      - y (float) (meters): Agent's y-coordinate in meters
+      - distance_from_center (float) (meters) [0 to track_width/2]: Distance in meters from the track center
+      - is_left_of_center (boolean): Flag to indicate if the agent is on the left side of track center
+
+      Movement Parameters:
+      - speed (float) (m/s) [0 to max_speed]: Agent's speed in meters per second
+      - steering_angle (float) (degrees) [-30 to 30]: Agent's steering angle in degrees
+      - heading (float) (degrees) [-180 to 180]: Agent's yaw in degrees
+
+      Track Parameters:
+      - track_width (float) (meters): Width of the track
+      - track_length (float) (meters): Track length in meters
+      - waypoints (list_tuple): List of (x,y) coordinates as milestones along the track center
+      - closest_waypoints (list_int): Indices of the two nearest waypoints
+
+      Progress Parameters:
+      - progress (float) (percentage) [0 to 100]: Percentage of track completed
+      - steps (int): Number of steps completed
+
+      Status Parameters:
+      - all_wheels_on_track (boolean): Flag to indicate if the agent is on the track
+      - is_crashed (boolean): Boolean flag to indicate whether the agent has crashed
+      - is_offtrack (boolean): Boolean flag to indicate whether the agent has gone off track
+      - is_reversed (boolean): Flag to indicate if agent is driving clockwise (True) or counter-clockwise (False)
+      """
+
+      all_wheels_on_track = params['all_wheels_on_track']
+      distance_from_center = params['distance_from_center']
+      is_left_of_center = params['is_left_of_center']
+      heading = params['heading']
+      progress = params['progress']
+      speed = params['speed']
+      steering_angle = params['steering_angle']
+      steps = params['steps']
+      track_length = params['track_length']
+      track_width = params['track_width']
+      x = params['x']
+      y = params['y']
+
+      closest_waypoints = params['closest_waypoints']
+      waypoints = params['waypoints']
+
+      is_crashed = params['is_crashed']
+      is_offtrack = params['is_offtrack']
+      is_reversed = params['is_reversed']
+
+      if not all_wheels_on_track or is_crashed or is_offtrack:
+          return float({{ parameters.off_track_penalty }})
+
+      if is_reversed:
+          return float({{ parameters.off_track_penalty }})
+
+      # Improved centerline reward with safety checks
+      try:
+          normalized_distance = distance_from_center / (track_width * {{ parameters.track_width_tolerance }})
+          centerline_reward = max({{ parameters.min_reward }}, 1.0 - normalized_distance)
+      except (ZeroDivisionError, TypeError):
+          centerline_reward = {{ parameters.min_reward }}
+
+      # Speed reward with proper scaling
+      speed_reward = min(speed / {{ parameters.max_speed }}, 1.0) * {{ parameters.speed_factor }}
+
+      # Progress reward
+      progress_reward = (progress / 100.0) * {{ parameters.progress_factor }}
+
+      # Steering penalty
+      steering_penalty = 0.0
+      if abs(steering_angle) > {{ parameters.steering_threshold }}:
+          steering_penalty = {{ parameters.steering_penalty }}
+
+      total_reward = centerline_reward + speed_reward + progress_reward - steering_penalty
+
+      # Completion bonus
+      if progress >= 99.0:
+          total_reward += {{ parameters.completion_bonus }}
+
+      return float(max(total_reward, {{ parameters.min_reward }}))
