@@ -583,19 +583,8 @@ The CloudFormation template creates:
 poetry run train-model          # Train DeepRacer model
 poetry run evaluate-model       # Evaluate model performance
 poetry run analyze-logs         # Analyze training logs
-```
 
 ### Notebook Structure
-
-1. **Environment Setup** - Poetry configuration and dependency verification
-2. **Advanced Neural Architectures** - Attention mechanisms, ResNet blocks, multi-modal fusion
-3. **Performance Optimization** - Bayesian optimization, curriculum learning, model compression
-4. **Advanced Training Strategies** - Meta-learning, multi-task learning, domain randomization
-5. **Reward Function Engineering** - Multi-objective optimization, adaptive reward shaping
-6. **Experimental Design** - Systematic evaluation across tracks and scenarios
-7. **Model Import/Export** - Comprehensive model sharing and backup system
-8. **AWS Integration** - Cloud training, evaluation, and deployment
-9. **Results Analysis** - Advanced visualization and performance metrics
 
 ## 🔬 Research Features
 
@@ -653,5 +642,3 @@ MIT License - see LICENSE file for details.
 **Bartlomiej Mlynarkiewicz**
 Email: bartlomiej.mlynarkiewicz@student.ie
 GitHub: [@Btech-Racer](https://github.com/Btech-Racer)
-
----
