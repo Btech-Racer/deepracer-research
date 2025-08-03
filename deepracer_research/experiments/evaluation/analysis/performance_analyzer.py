@@ -9,7 +9,7 @@ import seaborn as sns
 from deepracer_research.config.aws.aws_hyperparameters import AWSHyperparameters
 from deepracer_research.experiments.evaluation.analysis.statistical_analysis import StatisticalAnalysis
 from deepracer_research.experiments.evaluation.results.evaluation_results import EvaluationResults
-from deepracer_research.utils import info
+from deepracer_research.utils.logger import info
 
 plt.style.use("seaborn-v0_8-whitegrid")
 sns.set_palette("husl")

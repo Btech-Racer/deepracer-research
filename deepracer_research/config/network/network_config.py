@@ -56,7 +56,7 @@ class NetworkConfig:
 
     def validate(self) -> bool:
         """Validate network configuration parameters."""
-        from deepracer_research.utils import warning
+        from deepracer_research.utils.logger import warning
 
         if not isinstance(self.input_shape, tuple) or len(self.input_shape) < 2:
             warning(f"Invalid input_shape: must be tuple with at least 2 dimensions, got {self.input_shape}")

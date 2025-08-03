@@ -1,11 +1,11 @@
 {
   "model_id": "c6ca6c85",
-  "run_id": "c6ca6c85-1754122114",
+  "run_id": "c6ca6c85-1754136045",
   "workers": 4,
   "worker_mode": "swarm",
   "race_type": "HEAD_TO_HEAD",
-  "s3_bucket": "deepracer-thunder-compute-c6ca6c85-20250802-090834-91e2ef35",
+  "s3_bucket": "deepracer-thunder-compute-c6ca6c85-20250702-130045-28f74e18",
   "deployment_type": "thunder_compute_files",
-  "created_at": "2025-03-19 09:08:35",
+  "created_at": "2025-07-02 13:00:46",
   "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/c6ca6c85"
 }

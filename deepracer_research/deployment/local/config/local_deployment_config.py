@@ -10,7 +10,7 @@ from deepracer_research.deployment.deepracer.hyperparameters import DeepRacerHyp
 from deepracer_research.deployment.local.enum.local_compute_device import LocalComputeDevice
 from deepracer_research.deployment.local.enum.local_training_backend import LocalTrainingBackend
 from deepracer_research.experiments import ExperimentalScenario
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 @dataclass

@@ -15,7 +15,7 @@ from deepracer_research.deployment.thunder_compute.management.errors import Thun
 from deepracer_research.deployment.thunder_compute.models.api_models import ThunderComputeError
 from deepracer_research.deployment.thunder_compute.models.instance_models import InstanceDetails
 from deepracer_research.deployment.thunder_compute.ssh import SSHConnectionError, SSHManager
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 class ThunderDeploymentManager:

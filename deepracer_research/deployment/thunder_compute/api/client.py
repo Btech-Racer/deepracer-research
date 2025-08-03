@@ -7,7 +7,7 @@ from deepracer_research.deployment.thunder_compute.models.instance_models import
     InstanceResponse,
     InstanceStatus,
 )
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 class ThunderComputeClient:

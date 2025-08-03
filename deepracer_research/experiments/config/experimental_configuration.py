@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict
 
-from deepracer_research.config import ArchitectureType
-from deepracer_research.config.aws import ActionSpaceConfiguration
+from deepracer_research.config.aws.action_space_config import ActionSpaceConfiguration
+from deepracer_research.config.network import ArchitectureType
 from deepracer_research.config.track.track_type import TrackType
 from deepracer_research.experiments.config.hyperparameter_configuration import HyperparameterConfiguration
 from deepracer_research.experiments.config.sensor_configuration import SensorConfiguration

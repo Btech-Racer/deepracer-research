@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from deepracer_research.deployment.thunder_compute.models.api_models import ThunderComputeError
-from deepracer_research.utils import debug, error
+from deepracer_research.utils.logger import debug, error
 
 
 class HTTPClient:

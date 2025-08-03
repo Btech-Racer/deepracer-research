@@ -5,7 +5,7 @@ from deepracer_research.deployment.aws_ec2.config.ssh_config import EC2SSHConfig
 from deepracer_research.deployment.aws_ec2.ssh.connection import SSHConnectionManager
 from deepracer_research.deployment.aws_ec2.ssh.exceptions import SSHConnectionError
 from deepracer_research.deployment.aws_ec2.ssh.models import SSHCommand
-from deepracer_research.utils import debug, error, info
+from deepracer_research.utils.logger import debug, error, info
 
 
 class SSHCommandExecutor:

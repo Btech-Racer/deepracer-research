@@ -1,0 +1,11 @@
+{
+  "model_id": "ea94127a",
+  "run_id": "ea94127a-1754136489",
+  "workers": 4,
+  "worker_mode": "swarm",
+  "race_type": "HEAD_TO_HEAD",
+  "s3_bucket": "deepracer-thunder-compute-ea94127a-20250802-130809-d0ee908a",
+  "deployment_type": "thunder_compute_files",
+  "created_at": "2025-08-02 13:08:10",
+  "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/ea94127a"
+}

@@ -10,7 +10,7 @@ from deepracer_research.deployment.aws_ec2.models.api import EC2ApiError
 from deepracer_research.deployment.aws_ec2.models.instance import EC2InstanceDetails, EC2InstanceInfo
 from deepracer_research.deployment.aws_ec2.ssh import EC2SSHManager
 from deepracer_research.deployment.deepracer.deep_racer_deployment_config import DeepRacerDeploymentConfig
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 class EC2DeploymentManager:

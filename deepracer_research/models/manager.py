@@ -12,10 +12,11 @@ from typing import Any, Dict, List, Optional, Union
 
 import boto3
 
-from deepracer_research.deployment import AWSDeepRacerConfig
+from deepracer_research.deployment.deepracer.config import AWSDeepRacerConfig
 from deepracer_research.models.model_metadata import ModelMetadata
 from deepracer_research.models.model_version import ModelVersion
-from deepracer_research.utils import error, get_deepracer_client, get_s3_client, info
+from deepracer_research.utils.aws_config import get_deepracer_client, get_s3_client
+from deepracer_research.utils.logger import error, info
 
 
 class ModelManager:

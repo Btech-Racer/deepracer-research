@@ -5,7 +5,7 @@ from deepracer_research.deployment.thunder_compute.config.deepracer_cloud_config
 from deepracer_research.deployment.thunder_compute.config.instance_config import InstanceConfig
 from deepracer_research.deployment.thunder_compute.installation.errors import DeepRacerInstallationError
 from deepracer_research.deployment.thunder_compute.ssh import SSHManager
-from deepracer_research.utils import error, info
+from deepracer_research.utils.logger import error, info
 
 
 class DeepRacerCloudInstaller:

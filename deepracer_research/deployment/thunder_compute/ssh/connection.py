@@ -4,7 +4,7 @@ from typing import Optional
 
 from deepracer_research.deployment.thunder_compute.config.ssh_config import SSHConfig
 from deepracer_research.deployment.thunder_compute.ssh.models.ssh_connection_error import SSHConnectionError
-from deepracer_research.utils import debug, info, warning
+from deepracer_research.utils.logger import debug, info, warning
 
 
 class SSHConnectionManager:

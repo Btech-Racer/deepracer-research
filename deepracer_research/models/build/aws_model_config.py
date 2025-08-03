@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from deepracer_research.config.aws_config import (
-    ActionSpaceConfig,
-    ActionSpaceType,
-    AWSHyperparameters,
-    AWSModelMetadata,
-    SensorConfig,
-)
+from deepracer_research.config.aws.action_space_config import ActionSpaceConfig
+from deepracer_research.config.aws.aws_hyperparameters import AWSHyperparameters
+from deepracer_research.config.aws.aws_model_metadata import AWSModelMetadata
+from deepracer_research.config.aws.sensor_config import SensorConfig
+from deepracer_research.config.aws.types.action_space_type import ActionSpaceType
 
 
 @dataclass

@@ -12,7 +12,8 @@ from deepracer_research.training.config.training_job_config import TrainingJobCo
 from deepracer_research.training.config.training_job_result import TrainingJobResult
 from deepracer_research.training.enums.training_job_status import TrainingJobStatus
 from deepracer_research.training.monitoring.training_job_monitor import TrainingJobMonitor
-from deepracer_research.utils import error, get_deepracer_client, info, warning
+from deepracer_research.utils.aws_config import get_deepracer_client
+from deepracer_research.utils.logger import error, info, warning
 
 
 class TrainingManager:

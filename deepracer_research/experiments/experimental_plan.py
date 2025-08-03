@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from deepracer_research.config import ArchitectureType
+from deepracer_research.config.network.architecture_type import ArchitectureType
 from deepracer_research.experiments.config.sensor_configuration import SensorConfiguration
 from deepracer_research.experiments.enums.experimental_scenario import ExperimentalScenario
 from deepracer_research.experiments.enums.sensor_modality import SensorModality

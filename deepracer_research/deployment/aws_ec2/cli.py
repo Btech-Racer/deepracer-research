@@ -10,7 +10,7 @@ from deepracer_research.deployment.aws_ec2.config import AWSConfig, EC2InstanceC
 from deepracer_research.deployment.aws_ec2.enum import AWSRegion, EC2DeploymentMode, EC2InstanceType
 from deepracer_research.deployment.aws_ec2.management import EC2DeploymentError, EC2DeploymentManager
 from deepracer_research.deployment.aws_ec2.ssh import EC2SSHManager
-from deepracer_research.utils import error
+from deepracer_research.utils.logger import error
 
 app = typer.Typer(name="ec2-deepracer", help="AWS EC2 DeepRacer deployment CLI", add_completion=False)
 

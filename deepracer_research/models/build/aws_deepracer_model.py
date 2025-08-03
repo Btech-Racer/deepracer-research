@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 from deepracer_research.models.build.aws_model_config import AWSModelConfig
-from deepracer_research.utils import info
+from deepracer_research.utils.logger import info
 
 
 class AWSDeepRacerModel:

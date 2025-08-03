@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import tensorflow as tf
 
-from deepracer_research.utils import error, info, warning
+from deepracer_research.utils.logger import error, info, warning
 
 
 def validate_tensorflow_gpu(test_computation: bool = True) -> bool:

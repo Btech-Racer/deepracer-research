@@ -4,7 +4,7 @@ from pathlib import Path
 
 from deepracer_research.deployment.aws_ec2.enum.region import AWSRegion
 from deepracer_research.deployment.thunder_compute.ssh.manager import SSHManager
-from deepracer_research.utils import error, info, warning
+from deepracer_research.utils.logger import error, info, warning
 
 
 class AWSSetupManager:

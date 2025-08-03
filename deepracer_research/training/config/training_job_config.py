@@ -19,7 +19,7 @@ class TrainingJobConfig:
     racing_track: str = TrackType.REINVENT_2019_TRACK
     training_algorithm: str = TrainingAlgorithm.CLIPPED_PPO
     action_space: List[Dict[str, float]] = field(default_factory=list)
-    neural_network: str = NeuralNetworkType.DEEP_CONVOLUTIONAL_NETWORK
+    neural_network: str = NeuralNetworkType.SHALLOW
     sensors: List[SensorType] = field(default_factory=lambda: [SensorType.FRONT_FACING_CAMERA])
     hyperparameters: Optional[AWSHyperparameters] = None
     reward_function: str = ""

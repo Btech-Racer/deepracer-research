@@ -1,20 +1,18 @@
 from typing import Any, Dict, Optional, Union
 
-from deepracer_research.config.aws_config import (
-    ActionSpaceConfig,
-    ActionSpaceType,
-    AWSHyperparameters,
-    AWSModelMetadata,
-    SensorConfig,
-    SensorType,
-)
+from deepracer_research.config.aws.action_space_config import ActionSpaceConfig
+from deepracer_research.config.aws.aws_hyperparameters import AWSHyperparameters
+from deepracer_research.config.aws.aws_model_metadata import AWSModelMetadata
+from deepracer_research.config.aws.sensor_config import SensorConfig
+from deepracer_research.config.aws.types.action_space_type import ActionSpaceType
+from deepracer_research.config.aws.types.sensor_type import SensorType
 from deepracer_research.config.network.neural_network_type import NeuralNetworkType
 from deepracer_research.config.training.training_algorithm import TrainingAlgorithm
 from deepracer_research.experiments.enums.experimental_scenario import ExperimentalScenario
 from deepracer_research.models.build.aws_deepracer_model import AWSDeepRacerModel
 from deepracer_research.models.build.aws_model_config import AWSModelConfig
 from deepracer_research.rewards.builder import RewardFunctionBuilder
-from deepracer_research.utils import info
+from deepracer_research.utils.logger import info
 
 
 class AWSModelBuilder:

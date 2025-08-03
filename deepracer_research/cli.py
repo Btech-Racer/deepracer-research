@@ -24,7 +24,6 @@ from deepracer_research.config.track.track_type import (
 from deepracer_research.config.training.loss_type import LossType
 from deepracer_research.config.training.optimizer_config import OptimizerType
 from deepracer_research.config.training.training_algorithm import TrainingAlgorithm
-from deepracer_research.deployment import AWSDeepRacerConfig
 from deepracer_research.deployment.deepracer.config.aws_deep_racer_config import AWSDeepRacerConfig
 from deepracer_research.deployment.thunder_compute.cli import app as thunder_app
 from deepracer_research.experiments import (
@@ -45,7 +44,7 @@ from deepracer_research.rewards import (
     render_reward_function,
 )
 from deepracer_research.training import TrainingManager
-from deepracer_research.utils import error, info
+from deepracer_research.utils.logger import error, info
 
 console = Console()
 

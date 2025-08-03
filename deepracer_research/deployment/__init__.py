@@ -1,5 +1,4 @@
 from deepracer_research.deployment.deepracer import (
-    AWSDeepRacerConfig,
     DeepRacerDeploymentConfig,
     DeepRacerDeploymentManager,
     DeepRacerHyperparameters,
@@ -11,7 +10,12 @@ from deepracer_research.deployment.local import (
     LocalTrainingBackend,
     create_local_deployment_config,
 )
-from deepracer_research.deployment.sagemaker import SageMakerDeploymentConfig, SageMakerHyperparameters, SageMakerInstanceType
+from deepracer_research.deployment.sagemaker import (
+    SageMakerDeploymentConfig,
+    SageMakerHyperparameters,
+    SageMakerInstanceType,
+    create_aws_sagemaker_config,
+)
 from deepracer_research.deployment.thunder_compute import (
     DeploymentMode,
     GPUType,
@@ -20,11 +24,7 @@ from deepracer_research.deployment.thunder_compute import (
     ThunderComputeConfig,
     ThunderDeploymentManager,
 )
-from deepracer_research.deployment.unified_deployment_config import (
-    UnifiedDeploymentConfig,
-    create_aws_sagemaker_config,
-    create_local_deployment_config,
-)
+from deepracer_research.deployment.unified_deployment_config import UnifiedDeploymentConfig
 
 __all__ = [
     "DeploymentTarget",
@@ -34,7 +34,6 @@ __all__ = [
     "LocalComputeDevice",
     "create_local_deployment_config",
     "create_aws_sagemaker_config",
-    "AWSDeepRacerConfig",
     "DeepRacerHyperparameters",
     "DeepRacerDeploymentConfig",
     "DeepRacerDeploymentManager",

@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 import tensorflow as tf
 
-from deepracer_research.utils import error, info, warning
+from deepracer_research.utils.logger import error, info, warning
 
 
 class ModelOptimizer:

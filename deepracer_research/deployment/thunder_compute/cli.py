@@ -21,7 +21,7 @@ from deepracer_research.deployment.thunder_compute.management.deployment_manager
     ThunderDeploymentManager,
 )
 from deepracer_research.deployment.thunder_compute.ssh.manager import SSHManager
-from deepracer_research.utils import error
+from deepracer_research.utils.logger import error
 
 app = typer.Typer(name="thunder-deepracer", help="Thunder Compute DeepRacer deployment CLI", add_completion=False)
 
@@ -880,8 +880,7 @@ def deploy_training(
                     reward_function_code = f.read()
 
                 from deepracer_research.config.track.track_type import get_track_arn_by_name
-                from deepracer_research.deployment import AWSDeepRacerConfig
-                from deepracer_research.deployment.deepracer import DeepRacerDeploymentManager
+                from deepracer_research.deployment.deepracer import AWSDeepRacerConfig, DeepRacerDeploymentManager
 
                 try:
                     track_arn = get_track_arn_by_name(track_name, "us-east-1")

@@ -4,7 +4,7 @@
   "workers": 4,
   "worker_mode": "swarm",
   "race_type": "OBJECT_AVOIDANCE",
-  "s3_bucket": "deepracer-thunder-compute-660ea65b-20250801-220005-99df103b",
+  "s3_bucket": "deepracer-thunder-compute-660ea65b-20250701-220005-99df103b",
   "deployment_type": "thunder_compute_files",
   "created_at": "2025-07-01 22:00:06",
   "files_location": "/Users/bartmlynarkiewicz/msc/notebooks/deepracer-research/thunder_files/660ea65b",

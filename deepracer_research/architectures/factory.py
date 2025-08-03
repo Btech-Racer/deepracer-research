@@ -9,7 +9,7 @@ from deepracer_research.architectures.attention_modules import AttentionModule
 from deepracer_research.architectures.residual_block import ResidualBlock
 from deepracer_research.config import ArchitectureType, NetworkConfig, racing_config_manager
 from deepracer_research.config.network.activation_type import ActivationType
-from deepracer_research.utils import info
+from deepracer_research.utils.logger import info
 
 
 class ModelFactory:

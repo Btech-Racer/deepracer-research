@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 
 from deepracer_research.deployment.aws_ec2.config.aws_config import AWSConfig
 from deepracer_research.deployment.aws_ec2.models.api import EC2ApiError, SecurityGroupRule, VPCInfo
-from deepracer_research.utils import error, info, warning
+from deepracer_research.utils.logger import error, info, warning
 
 
 class VPCManager:

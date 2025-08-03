@@ -10,7 +10,7 @@ from deepracer_research.deployment.aws_ec2.enum.instance_type import EC2Instance
 from deepracer_research.deployment.aws_ec2.enum.region import AWSRegion
 from deepracer_research.deployment.aws_ec2.models.api import EC2ApiError
 from deepracer_research.deployment.aws_ec2.models.instance import EC2InstanceDetails, EC2InstanceInfo, EC2InstanceResponse
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 class EC2Client:

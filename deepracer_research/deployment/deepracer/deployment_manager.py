@@ -14,9 +14,9 @@ import yaml
 from botocore.exceptions import ClientError, NoCredentialsError
 from jinja2 import Template
 
-from deepracer_research.config import ArchitectureType
 from deepracer_research.config.aws.types.action_space_type import ActionSpaceType
 from deepracer_research.config.aws.types.evaluation_type import EvaluationType
+from deepracer_research.config.network import ArchitectureType
 from deepracer_research.config.network.architecture_type import ArchitectureType
 from deepracer_research.config.training.loss_type import LossType
 from deepracer_research.config.training.optimizer_config import OptimizerType
@@ -24,7 +24,7 @@ from deepracer_research.config.training.training_algorithm import TrainingAlgori
 from deepracer_research.deployment.deepracer.config.aws_deep_racer_config import AWSDeepRacerConfig
 from deepracer_research.experiments.enums.experimental_scenario import ExperimentalScenario
 from deepracer_research.models.build import AWSModelBuilder, create_aws_model, create_simple_aws_model
-from deepracer_research.utils import info
+from deepracer_research.utils.logger import info
 
 
 class DeepRacerDeploymentManager:

@@ -2,7 +2,7 @@ from typing import Optional
 
 from deepracer_research.deployment.aws_ec2.installation.errors import DeepRacerInstallationError
 from deepracer_research.deployment.aws_ec2.ssh import EC2SSHManager
-from deepracer_research.utils import error, info
+from deepracer_research.utils.logger import error, info
 
 
 class EC2DeepRacerInstaller:

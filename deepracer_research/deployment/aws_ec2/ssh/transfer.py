@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from deepracer_research.deployment.aws_ec2.config.ssh_config import EC2SSHConfig
 from deepracer_research.deployment.aws_ec2.ssh.connection import SSHConnectionManager
-from deepracer_research.utils import debug, error, info, warning
+from deepracer_research.utils.logger import debug, error, info, warning
 
 
 class SSHFileTransfer:

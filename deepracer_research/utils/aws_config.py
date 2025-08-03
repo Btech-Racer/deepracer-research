@@ -4,16 +4,14 @@ from typing import Optional
 import boto3
 from botocore.config import Config
 
-from deepracer_research.deployment.aws_ec2.enum.region import AWSRegion
 
-
-def get_deepracer_config(region_name: str = AWSRegion.US_EAST_1) -> Config:
+def get_deepracer_config(region_name: str = "us-east-1") -> Config:
     """Get optimized boto3 config for DeepRacer service.
 
     Parameters
     ----------
     region_name : str, optional
-        AWS region name, by default AWSRegion.US_EAST_1
+        AWS region name, by default "us-east-1"
 
     Returns
     -------
@@ -70,14 +68,14 @@ def get_aws_session(region_name: Optional[str] = None, profile_name: Optional[st
 
 
 def get_deepracer_client(
-    region_name: str = AWSRegion.US_EAST_1, profile_name: Optional[str] = None, aws_session: Optional[boto3.Session] = None
+    region_name: str = "us-east-1", profile_name: Optional[str] = None, aws_session: Optional[boto3.Session] = None
 ) -> boto3.client:
     """Get a properly configured DeepRacer client.
 
     Parameters
     ----------
     region_name : str, optional
-        AWS region name, by default AWSRegion.US_EAST_1
+        AWS region name, by default "us-east-1"
     profile_name : Optional[str], optional
         AWS profile name, by default None
     aws_session : Optional[boto3.Session], optional
@@ -98,14 +96,14 @@ def get_deepracer_client(
 
 
 def get_s3_client(
-    region_name: str = AWSRegion.US_EAST_1, profile_name: Optional[str] = None, aws_session: Optional[boto3.Session] = None
+    region_name: str = "us-east-1", profile_name: Optional[str] = None, aws_session: Optional[boto3.Session] = None
 ) -> boto3.client:
     """Get a properly configured S3 client.
 
     Parameters
     ----------
     region_name : str, optional
-        AWS region name, by default AWSRegion.US_EAST_1
+        AWS region name, by default "us-east-1"
     profile_name : Optional[str], optional
         AWS profile name, by default None
     aws_session : Optional[boto3.Session], optional

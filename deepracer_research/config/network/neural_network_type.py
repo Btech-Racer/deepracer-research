@@ -3,26 +3,13 @@ from enum import Enum, unique
 
 @unique
 class NeuralNetworkType(str, Enum):
-    """Neural network architectures supported by AWS DeepRacer.
-
-    Reference: https://blog.gofynd.com/how-we-broke-into-the-top-1-of-the-aws-deepracer-virtual-circuit-573ba46c275
-    """
+    """Neural network architectures supported by AWS DeepRacer."""
 
     SHALLOW = "DEEP_CONVOLUTIONAL_NETWORK_SHALLOW"
-    """3-layer Convolutional Neural Network (Recommended).
 
-    Fast to train, efficient inference, and proven effective for time trials.
-    Preferred choice for AWS DeepRacer competitions and most racing scenarios.
-    Top 1% models typically use this architecture for optimal performance.
-    """
+    STANDARD = "DEEP_CONVOLUTIONAL_NETWORK"  # Deprecated alias for SHALLOW
 
     DEEP = "DEEP_CONVOLUTIONAL_NETWORK_DEEP"
-    """5-layer Convolutional Neural Network (Advanced).
-
-    More complex architecture with deeper feature extraction.
-    Higher computational cost but potentially better for complex scenarios.
-    Use only when shallow network proves insufficient for specific use cases.
-    """
 
     @classmethod
     def get_recommended(cls) -> "NeuralNetworkType":
@@ -65,22 +52,8 @@ class NeuralNetworkType(str, Enum):
         int
             Number of CNN layers in the architecture
         """
-        layer_counts = {self.SHALLOW: 3, self.DEEP: 5}
+        layer_counts = {self.SHALLOW: 0, self.DEEP: 2}
         return layer_counts[self]
-
-    def get_description(self) -> str:
-        """Get  description of the neural network type.
-
-        Returns
-        -------
-        str
-            Description of the neural network architecture
-        """
-        descriptions = {
-            self.SHALLOW: "3-layer CNN - fast training, proven performance, recommended for most use cases",
-            self.DEEP: "5-layer CNN - complex feature extraction, higher computational cost, advanced scenarios only",
-        }
-        return descriptions[self]
 
     def get_training_time_multiplier(self) -> float:
         """Get approximate training time multiplier compared to shallow network.
@@ -88,9 +61,9 @@ class NeuralNetworkType(str, Enum):
         Returns
         -------
         float
-            Training time multiplier (1.0 = baseline shallow network)
+            Training time multiplier
         """
-        multipliers = {self.SHALLOW: 1.0, self.DEEP: 2.5}  # Significantly slower training
+        multipliers = {self.SHALLOW: 1.0, self.DEEP: 2.5}
         return multipliers[self]
 
     def is_recommended_for_competitions(self) -> bool:

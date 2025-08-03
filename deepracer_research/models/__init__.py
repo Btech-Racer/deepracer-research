@@ -1,13 +1,11 @@
-from deepracer_research.deployment import (
-    AWSDeepRacerConfig,
-    DeepRacerDeploymentConfig,
-    DeploymentTarget,
+from deepracer_research.deployment.deepracer import AWSDeepRacerConfig, DeepRacerDeploymentConfig
+from deepracer_research.deployment.deployment_target import DeploymentTarget
+from deepracer_research.deployment.local import (
     LocalDeploymentConfig,
-    SageMakerDeploymentConfig,
-    UnifiedDeploymentConfig,
-    create_aws_sagemaker_config,
     create_local_deployment_config,
 )
+from deepracer_research.deployment.sagemaker import SageMakerDeploymentConfig, create_aws_sagemaker_config
+from deepracer_research.deployment.unified_deployment_config import UnifiedDeploymentConfig
 from deepracer_research.models.aws_builder import (
     AWSDeepRacerModel,
     AWSModelBuilder,
